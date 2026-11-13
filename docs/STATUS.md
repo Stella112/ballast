@@ -6,10 +6,10 @@ Deadline: Mezo Buildathon Wave 2, **2026-11-15** (exact cutoff/timezone: verify 
 |---|---|---|
 | Repo audit / tools | VERIFIED | — |
 | Mezo addresses, ABIs, params | VERIFIED | docs/VERIFICATION.md |
-| Contracts (Factory/NFT/Account/Router) | VERIFIED: deployed; 15 unit/fuzz + 4 fork tests PASS | explorer source verification |
+| Contracts (Factory/NFT/Account/Router) | VERIFIED: deployed; 15 unit/fuzz + 4 fork tests PASS | — |
 | **Gate A** live contract-owned trove + repay | **VERIFIED** (docs/TEST_EVIDENCE.md) | — |
 | **Gate B** 100 MUSD invoice 20/5/75 live | **VERIFIED** (docs/TEST_EVIDENCE.md) | — |
-| Ballast explorer source verification | NOT STARTED | `forge verify-contract` against Blockscout |
+| Ballast explorer source verification | **VERIFIED** (Router, NFT, Factory, Account: Blockscout "Pass - Verified", 2026-11-13) | — |
 | Local unit/fuzz tests (non-fork) | VERIFIED (15 pass) | — |
 | **Gate C** Redemption Radar | **VERIFIED** (read model + live reorder, docs/TEST_EVIDENCE.md) | wire into UI |
 | Gate D invoice link + DEMO.md | IN PROGRESS: links + pay page built; signature/split checked in browser; DEMO.md written | full browser-wallet run (needs a human wallet) |

@@ -1,0 +1,18 @@
+# never upload secrets
+.env
+.env.*
+!.env.example
+*.key
+keystore/
+# not needed for the web build
+.upstream/
+lib/forge-std/
+lib/openzeppelin-contracts/
+out/
+cache/
+broadcast/
+evidence/
+contracts/
+.claude/
+node_modules/
+.next/

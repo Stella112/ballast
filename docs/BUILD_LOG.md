@@ -15,3 +15,6 @@
 - Radar: verified sort direction (descending NICR, tail first redeemed, ICR<MCR skipped), NICR precision 1e20, interest-first repayment. Reader rebuilds the list from pointers at one block and self-verifies. Multicall3 is present on Mezo testnet.
 - **Gate C PASS**: quote 12.756783 MUSD to pass the next trove → live repay → rank 165 → 166 at block 16762622.
 - Frontend: pinned within known-stable majors (next 15.5.29, wagmi 2.19.5, viem 2.38.0, TS 5.9.3, tailwind 4.1.13) rather than latest majors (next 16 / wagmi 3 / TS 7), to limit risk before the deadline. Tailwind only, no shadcn CLI (fewer deps).
+
+## 2026-11-13 — Explorer source verification
+`forge verify-contract --verifier blockscout --verifier-url https://api.explorer.test.mezo.org/api/` (solc 0.8.24, london, 200 runs) returned "Pass - Verified" for BallastRouter, BallastAccountNFT, BallastFactory and BallastAccount (0xDE61…6323). Note: the verifier API host is `api.explorer.test.mezo.org`, not `explorer.test.mezo.org/api`.

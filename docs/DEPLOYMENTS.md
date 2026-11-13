@@ -12,4 +12,4 @@ Machine-readable copy: `config/deployments.mezo-testnet.json`. Explorer: https:/
 
 Demo wallets (disposable, testnet-only): merchant/controller `0x4ff0D7c712B109dE476f21Ed443Ef0928d52a5fA`, payer `0xCBCd26d717CEe0305b92FDC1E50A398608A4d857`.
 No admin, owner, or upgrade keys exist on any Ballast contract.
-Explorer source verification of Ballast contracts: **not yet submitted** (TODO).
+Explorer source verification of Ballast contracts: **VERIFIED** on Blockscout (Router, NFT, Factory, Account) 2026-11-13; view the "Contract" tab of each address on https://explorer.test.mezo.org.
