@@ -11,5 +11,6 @@ Machine-readable copy: `config/deployments.mezo-testnet.json`. Explorer: https:/
 | BallastAccount #1 (demo) | [`0xDE61A300ca381463FD6FeCc6b2602980a2Db6323`](https://explorer.test.mezo.org/address/0xDE61A300ca381463FD6FeCc6b2602980a2Db6323) | createAccount [`0xc8c82af3…7815`](https://explorer.test.mezo.org/tx/0xc8c82af3b6baf50c7d516e124e2d7ae91dee2c680274caf1bf2f492cac3c7815) | 16762107 |
 
 Demo wallets (disposable, testnet-only): merchant/controller `0x4ff0D7c712B109dE476f21Ed443Ef0928d52a5fA`, payer `0xCBCd26d717CEe0305b92FDC1E50A398608A4d857`.
+Frontend: https://ballast-tawny.vercel.app (Vercel production, deployment `dpl_5pi9ErA2NVGuorZqvyiUpxF3Q4Ur`, source commit `26bca95`, 2026-11-14). Public; all routes returned HTTP 200 and `/api/radar` matched direct RPC reads of SortedTroves/TroveManager.
 No admin, owner, or upgrade keys exist on any Ballast contract.
 Explorer source verification of Ballast contracts: **VERIFIED** on Blockscout (Router, NFT, Factory, Account) 2026-11-13; view the "Contract" tab of each address on https://explorer.test.mezo.org.

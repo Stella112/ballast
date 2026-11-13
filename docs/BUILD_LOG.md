@@ -18,3 +18,10 @@
 
 ## 2026-11-13 — Explorer source verification
 `forge verify-contract --verifier blockscout --verifier-url https://api.explorer.test.mezo.org/api/` (solc 0.8.24, london, 200 runs) returned "Pass - Verified" for BallastRouter, BallastAccountNFT, BallastFactory and BallastAccount (0xDE61…6323). Note: the verifier API host is `api.explorer.test.mezo.org`, not `explorer.test.mezo.org/api`.
+
+## 2026-11-14 — Frontend deployed to Vercel
+- An earlier CLI deploy had failed without creating a project; root cause was the C: drive at 0 MB free (ENOSPC). Freed space (npm cache, `.next`).
+- Added `vercel.json` (framework nextjs, pnpm) because the CLI linked the project with "No framework detected".
+- `vercel deploy --prod` → READY, production alias https://ballast-tawny.vercel.app (`dpl_5pi9ErA2NVGuorZqvyiUpxF3Q4Ur`). Project is linked to GitHub, so pushes to `main` redeploy.
+- Checks: `/`, `/app`, `/app/radar`, `/app/invoices`, `/app/payback`, `/app/activity`, `/app/hedge`, `/demo`, `/api/radar` all HTTP 200 without login (per-deployment URL is behind Vercel auth; use the production alias).
+- `/api/radar` at block 16763926: size 325, tail 0xBAA1…9E05, consistency checks all true; matched `SortedTroves.getSize()`/`getLast()` via cast. Account 0xDE61…6323: coll 0.048 BTC equal to `TroveManager.getTroveColl`; debt 2159.2483 MUSD vs 2159.2483 on-chain (difference = interest accrued between reads); position 166 of 325 from the tail.

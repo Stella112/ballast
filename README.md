@@ -3,6 +3,8 @@
 **Protect your Bitcoin. Strengthen your loan.**
 Ballast is the cash-flow autopilot for Bitcoin-backed loans: every MUSD payment you receive can make your Mezo loan safer.
 
+**Live app:** https://ballast-tawny.vercel.app · [Judge walkthrough](docs/DEMO.md)
+
 > Mezo **testnet** only (chain 31611). Unaudited. No guarantee of redemption or liquidation protection.
 
 ## What works today (verified on Mezo testnet)

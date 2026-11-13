@@ -1,5 +1,7 @@
 # Demo — reproduce Ballast on Mezo testnet
 
+Live app: https://ballast-tawny.vercel.app (or run locally with `pnpm install && pnpm dev`).
+
 No admin keys are needed. You need a browser wallet with **two accounts** (merchant, payer) on Mezo Testnet (chain 31611, RPC `https://rpc.test.mezo.org`, explorer `https://explorer.test.mezo.org`). The app offers to add/switch the network.
 
 ## Prerequisites
