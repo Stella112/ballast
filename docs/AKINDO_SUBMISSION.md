@@ -45,7 +45,7 @@ Mezo testnet (chain 31611). Factory `0x74f918a5C1c8BDDc40CD0Ba8F9935790Fbc5dCCd`
 ## Status / readiness
 Working testnet MVP (Gates A–C verified on-chain; web flow built and tested without a wallet in-browser; wallet flow — TODO: NEEDS VERIFIED RESULT from a browser-wallet run).
 
-- **GitHub repo:** TODO — NEEDS VERIFIED RESULT (not yet published)
+- **GitHub repo:** https://github.com/Stella112/ballast
 - **Live frontend:** TODO — NEEDS VERIFIED RESULT (not yet deployed)
 - **Demo video (2 min):** TODO — NEEDS VERIFIED RESULT
 - **Deck:** TODO — NEEDS VERIFIED RESULT
