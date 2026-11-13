@@ -1,0 +1,23 @@
+# secrets — never commit
+.env
+.env.*
+!.env.example
+*.key
+keystore/
+
+# upstream reference clones (pinned, read-only)
+.upstream/
+
+# foundry
+out/
+cache/
+broadcast/*/31337/
+broadcast/**/dry-run/
+
+# node / next
+node_modules/
+.next/
+next-env.d.ts
+*.tsbuildinfo
+.vercel/
+coverage/

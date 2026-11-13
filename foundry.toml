@@ -1,0 +1,20 @@
+[profile.default]
+src = "contracts/src"
+test = "contracts/test"
+script = "contracts/script"
+libs = ["lib"]
+out = "out"
+cache_path = "cache"
+solc_version = "0.8.24"
+# Mezo testnet implementations are compiled for london (explorer-verified, see docs/VERIFICATION.md)
+evm_version = "london"
+optimizer = true
+optimizer_runs = 200
+remappings = ["forge-std/=lib/forge-std/src/", "@openzeppelin/contracts/=lib/openzeppelin-contracts/contracts/"]
+fs_permissions = [{ access = "read-write", path = "./config" }, { access = "read", path = "./out" }]
+
+[rpc_endpoints]
+mezo_testnet = "${MEZO_TESTNET_RPC_URL}"
+
+[fmt]
+line_length = 110

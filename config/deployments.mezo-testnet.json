@@ -1,0 +1,15 @@
+{
+  "_provenance": "Every address below was verified on 2026-11-13 by eth_getCode, EIP-1967 implementation slot, explorer-verified source (Blockscout api/v2/smart-contracts) and cross-wiring reads. See docs/VERIFICATION.md.",
+  "chainId": 31611,
+  "rpcUrl": "https://rpc.test.mezo.org",
+  "explorer": "https://explorer.test.mezo.org",
+  "mezo": {
+    "MUSD": "0x118917a40FAF1CD7a13dB0Ef56C86De7973Ac503",
+    "BorrowerOperations": "0xCdF7028ceAB81fA0C6971208e83fa7872994beE5",
+    "TroveManager": "0xE47c80e8c23f6B4A1aE41c34837a0599D5D16bb0",
+    "SortedTroves": "0x722E4D24FD6Ff8b0AC679450F3D91294607268fA",
+    "HintHelpers": "0x4e4cBA3779d56386ED43631b4dCD6d8EacEcBCF6",
+    "PriceFeed": "0x86bCF0841622a5dAC14A313a15f96A95421b9366"
+  },
+  "ballast": null
+}
