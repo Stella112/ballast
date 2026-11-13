@@ -79,8 +79,8 @@ deploy)
 import json
 cfg=json.load(open("config/deployments.mezo-testnet.json")); out=json.load(open("config/ballast-deploy.out.json"))
 run=json.load(open("broadcast/Deploy.s.sol/31611/run-latest.json"))
-txs={t["contractName"]:t["hash"] for t in run["transactions"]}
-rc={r["transactionHash"]:int(r["blockNumber"],16) for r in run["receipts"]}
+txs={t["contractName"]:t["hash"].lower() for t in run["transactions"]}
+rc={r["transactionHash"].lower():int(r["blockNumber"],16) for r in run["receipts"]}
 cfg["ballast"]={k:out[k] for k in ("BallastRouter","BallastAccountNFT","BallastFactory")}
 cfg["ballast"]["deployTx"]={k:{"hash":h,"block":rc.get(h)} for k,h in txs.items()}
 json.dump(cfg,open("config/deployments.mezo-testnet.json","w"),indent=2)

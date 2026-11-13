@@ -1,0 +1,4 @@
+{"types":{"EIP712Domain":[{"name":"name","type":"string"},{"name":"version","type":"string"},{"name":"chainId","type":"uint256"},{"name":"verifyingContract","type":"address"}],
+"Invoice":[{"name":"tokenId","type":"uint256"},{"name":"invoiceId","type":"bytes32"},{"name":"amount","type":"uint256"},{"name":"expiry","type":"uint256"}]},
+"primaryType":"Invoice","domain":{"name":"BallastRouter","version":"1","chainId":31611,"verifyingContract":"0x2a3Ce214189F62A2f15b58ecFD7c4CfCDa97dF1d"},
+"message":{"tokenId":1,"invoiceId":"0xb531a51762612dcdff2804c680954ff9a962a78efe6f5ac860770f5f1b0a4c0f","amount":"100000000000000000000","expiry":1794608570}}

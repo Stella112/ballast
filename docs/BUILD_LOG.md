@@ -7,4 +7,8 @@
 - **Decision**: invoices are EIP-712 messages signed by the current controller (no on-chain registry, no server keys). Replay key `(tokenId, invoiceId)`; exact-amount single payment.
 - **Decision**: repayment beyond Mezo's min-net-debt headroom reverts the whole payment (`RepayExceedsHeadroom`) — no silent re-routing.
 - **Failure → fix**: all fork tests reverted inside `PriceFeed.fetchPrice()` → oracle at precompile `0x7b7c…15` → Foundry `NotActivated`. Fix: mock only the precompile with the live `latestRoundData` fetched by `vm.rpc`. Result: **4/4 fork tests pass** (open/withdraw/repay, 100 MUSD 20/5/75 split, floor revert atomicity, NFT lock + close + transfer).
+- Owner funded both wallets with 0.05 BTC each (less than the 0.075 requested). Decision: shrink the trove to 2000 MUSD / 0.048 BTC (ICR ≈149%, ~202 MUSD headroom above the floor) rather than move BTC between wallets.
+- Deployed router/NFT/factory (blocks 16762083–87). A one-off null RPC response broke receipt parsing → fixed hash-case matching in live.sh; block numbers confirmed via `cast receipt`.
+- **Gate A PASS**: account-owned trove opened (block 16762136); controller repay of 10 MUSD lowers debt by exactly 10e18 (Repaid event); permissions checked live.
+- **Gate B PASS**: payer paid a 100 MUSD invoice → 75/5/20 exact; trove debt −20e18 exact in the same tx; replay and tamper rejected.
 - Generated two disposable testnet-only keys into git-ignored `.env.local` (keys never printed). Live preflight OK; both wallets at 0 BTC → blocked on faucet.
