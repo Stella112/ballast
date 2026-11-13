@@ -12,3 +12,6 @@
 - **Gate A PASS**: account-owned trove opened (block 16762136); controller repay of 10 MUSD lowers debt by exactly 10e18 (Repaid event); permissions checked live.
 - **Gate B PASS**: payer paid a 100 MUSD invoice → 75/5/20 exact; trove debt −20e18 exact in the same tx; replay and tamper rejected.
 - Generated two disposable testnet-only keys into git-ignored `.env.local` (keys never printed). Live preflight OK; both wallets at 0 BTC → blocked on faucet.
+- Radar: verified sort direction (descending NICR, tail first redeemed, ICR<MCR skipped), NICR precision 1e20, interest-first repayment. Reader rebuilds the list from pointers at one block and self-verifies. Multicall3 is present on Mezo testnet.
+- **Gate C PASS**: quote 12.756783 MUSD to pass the next trove → live repay → rank 165 → 166 at block 16762622.
+- Frontend: pinned within known-stable majors (next 15.5.29, wagmi 2.19.5, viem 2.38.0, TS 5.9.3, tailwind 4.1.13) rather than latest majors (next 16 / wagmi 3 / TS 7), to limit risk before the deadline. Tailwind only, no shadcn CLI (fewer deps).

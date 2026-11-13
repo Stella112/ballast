@@ -30,8 +30,13 @@ ballast() { j "(d.get('ballast') or {}).get('$1','')"; }
 
 send() { # send <pkvar> <to> <sig> [args...] ; logs hash, block, status
   local pkv=$1; shift
-  local out; out=$(cast send --rpc-url "$R" --private-key "${!pkv}" --json "$@")
-  local h b s; h=$(echo "$out" | python -c 'import json,sys;print(json.load(sys.stdin)["transactionHash"])')
+  # submit async (hash returned immediately and logged), then poll for the receipt
+  local h; h=$(cast send --rpc-url "$R" --private-key "${!pkv}" --async "$@" | tail -1 | tr -d '[:space:]')
+  log "SUBMITTED $2 hash=$h"
+  local out="" i
+  for i in $(seq 1 60); do out=$(cast receipt "$h" --json --rpc-url "$R" 2>/dev/null) && [ -n "$out" ] && break; sleep 3; done
+  [ -n "$out" ] || { log "NO RECEIPT after polling for $h"; exit 1; }
+  local b s
   b=$(echo "$out" | python -c 'import json,sys;print(int(json.load(sys.stdin)["blockNumber"],16))')
   s=$(echo "$out" | python -c 'import json,sys;print(int(json.load(sys.stdin)["status"],16))')
   log "TX $2 status=$s block=$b hash=$h $EXP/tx/$h"

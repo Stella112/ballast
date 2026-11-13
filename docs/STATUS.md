@@ -11,7 +11,7 @@ Deadline: Mezo Buildathon Wave 2, **2026-11-15** (exact cutoff/timezone: verify 
 | **Gate B** 100 MUSD invoice 20/5/75 live | **VERIFIED** (docs/TEST_EVIDENCE.md) | — |
 | Ballast explorer source verification | NOT STARTED | `forge verify-contract` against Blockscout |
 | Local unit/fuzz tests (non-fork) | NOT STARTED | router split fuzz, NFT, access control |
-| Gate C Redemption Radar | NOT STARTED | TS read model (viem) |
+| **Gate C** Redemption Radar | **VERIFIED** (read model + live reorder, docs/TEST_EVIDENCE.md) | wire into UI |
 | Gate D invoice link + DEMO.md | NOT STARTED | |
 | P0-E frontend/deploy/docs/submission | NOT STARTED | |
 | P1 Base Sepolia path | DEFERRED until A–D green | |

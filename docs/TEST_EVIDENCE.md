@@ -42,3 +42,16 @@ The sequence is two transactions (approve, then pay). The split and the repaymen
 - Balance deltas (reads @16762233 → @16762255): payer 150 → 50; payout (merchant) 0 → 75; account MUSD 1840 → 1845 with `hedgeReserve` 0 → 5; `invoicePaid(1, id)` = true.
 - Ordering: NICR 2.18978e15 → 2.20994e15; neighbors changed (prev `0xea2D…1A91`→`0x2104…8290`, next `0xB19b…E277`→`0x54A5…7ba3`). Rank (index) not yet computed — see Radar.
 - Replay (eth_call, same invoice + sig): reverts `AlreadyPaid` (0xf4b76a0e). Tampered invoice: `BadSignature` (0x5cd5d233).
+
+### Gate C — Redemption Radar quote → repay → verified reorder — **PASS**
+Read model: `lib/radar/snapshot.ts` (viem, bigint). For one pinned block it multicalls every trove owner's `getNext/getPrev/getNominalICR/getCurrentICR/getTroveDebt`, rebuilds the list head→tail from `getNext`, and verifies count == `getSize`, prev/next pointer consistency, non-increasing NICR, and tail == `getLast`. Ranks are shown only when all four checks pass.
+Rank = 1-based position from the tail (tail = lowest NICR = first redeemed; TroveManager.redeemCollateral skips ICR < MCR, so an "eligible rank" is also reported).
+
+| Step | Block | Result |
+|---|---|---|
+| Snapshot (`pnpm radar`) | 16762559 | 325 troves, all 4 checks true; account rank **#165** from tail; NICR 2209944403811417; neighbors safer `0x2104…8290`, riskier `0x54A5…7ba3` |
+| Fresh quote to pass 1 (`scripts/gate-c.ts`) | 16762593 | target `0x2104…8290` NICR 2222999300629433 → repay 12.756782874594186616 MUSD (incl. accrued interest paid first + 10-min interest buffer), rounded up to 12.756783 |
+| `account.repay(12.756783 MUSD)` [0xea07e53b…8c75](https://explorer.test.mezo.org/tx/0xea07e53b0a2664cffc796b8e1063c0174979068ef0f200ccd5d810c3bd798c75) | 16762619 | `Repaid`: 2172001385722092709230 → 2159244602722092709230, delta exactly 12.756783e18 |
+| Snapshot after | 16762622 | all checks true; rank **#166**; NICR 2222999651798961 > target's 2222999300629433; target is now our riskier neighbor. Quote for 50 positions now correctly reports "NOT REACHABLE without closing" (164.02 > maxRepayable 159.24) |
+
+Note: the live.sh run exited before logging this tx (a receipt wait in `cast send`); the hash was recovered from the explorer and confirmed by receipt. live.sh now submits async, logs the hash first, then polls for the receipt.
