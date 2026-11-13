@@ -2,7 +2,7 @@
   "name": "ballast",
   "version": "0.1.0",
   "private": true,
-  "description": "Ballast — the cash-flow autopilot for Bitcoin-backed loans on Mezo testnet",
+  "description": "Ballast: the cash-flow autopilot for Bitcoin-backed loans on Mezo testnet",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
@@ -28,5 +28,11 @@
     "tsx": "4.20.6",
     "typescript": "5.9.3",
     "vitest": "3.2.7"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "@tailwindcss/oxide",
+      "esbuild"
+    ]
   }
 }

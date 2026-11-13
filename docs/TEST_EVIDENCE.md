@@ -55,3 +55,14 @@ Rank = 1-based position from the tail (tail = lowest NICR = first redeemed; Trov
 | Snapshot after | 16762622 | all checks true; rank **#166**; NICR 2222999651798961 > target's 2222999300629433; target is now our riskier neighbor. Quote for 50 positions now correctly reports "NOT REACHABLE without closing" (164.02 > maxRepayable 159.24) |
 
 Note: the live.sh run exited before logging this tx (a receipt wait in `cast send`); the hash was recovered from the explorer and confirmed by receipt. live.sh now submits async, logs the hash first, then polls for the receipt.
+
+## Local unit + fuzz tests (2026-11-13)
+`forge test` → `Suite result: ok. 15 passed; 0 failed` (BallastUnitTest; fuzz 256 runs each: split conservation, payInvoice balance conservation incl. floor reverts) and 4 fork tests skipped without RPC. Covered: 20/5/75 exact, dust → spendable, replay, expiry, edited amount, wrong signer, zero amount, unknown account, insufficient allowance (no state), paused policy, repay leg without trove (whole revert), all controller-only functions, router-only entry, invalid bps, reserve vs free MUSD, no MUSD rescue, factory uniqueness/bad wiring, NFT lock/EOA-only/control follows holder (old-holder invoices invalid), BTC receive/withdraw. Stand-ins model only Mezo rules Ballast depends on.
+
+## Radar math (vitest)
+`pnpm test` → `Tests 8 passed (8)`.
+
+## Frontend
+- `pnpm typecheck` clean; `pnpm build` → 11 routes compiled (Next 15.5.29).
+- Browser (built-in, no wallet) against live testnet: `/pay/<link>` for a merchant-signed 10 MUSD invoice resolves account `0xDE61…6323`, signature **Valid** (viem `verifyTypedData` vs live controller), split preview 7.50 / 0.50 / 2.00 from `router.computeSplit`. Same link with edited memo → signature **Invalid**. `/api/radar` → block 16762947, all 4 checks true, rank 166, 11-row window, ~11 s. Mobile 375 px: no horizontal overflow.
+- **Not yet verified:** wallet-connected flows in a real browser wallet (needs a human wallet extension).
