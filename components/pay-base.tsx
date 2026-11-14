@@ -173,7 +173,7 @@ function Inner({ invoice, sig, acct, repayShare, blocked, rcv, wusdc }: Paramete
       </div>
       {noQuote && usdc === undefined && (
         <div className="mt-3"><Notice tone="warn" title="Too large for the testnet USDC/MUSD pool">
-          The pool currently holds {poolMusd.data !== undefined ? `${fmt(poolMusd.data)} MUSD` : "too little MUSD"}, so it cannot turn USDC into {fmt(invoice.amount)} MUSD. Pay this invoice in MUSD on Mezo above, or ask the merchant for a smaller invoice to pay from Base.
+          This pool is small ({poolMusd.data !== undefined ? `${fmt(poolMusd.data)} MUSD` : "a few MUSD"} on its MUSD side). Turning USDC into {fmt(invoice.amount)} MUSD would cost more than 10% extra, so no Base payment is offered. Pay this invoice in MUSD on Mezo above, or ask the merchant for a smaller invoice (a few MUSD) to pay from Base.
         </Notice></div>
       )}
       {!address && <div className="mt-3"><Notice tone="neutral">Connect a wallet to pay from Base Sepolia.</Notice></div>}
