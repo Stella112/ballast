@@ -7,22 +7,22 @@ interface IBallastFactoryView {
     function accountOf(uint256 tokenId) external view returns (address);
 }
 
-interface IBallastAccountView {
-    function hasActiveTrove() external view returns (bool);
+interface IBallastAccountHook {
+    function controllerChanged(address newController) external;
 }
 
 /// @title BallastAccountNFT
 /// @notice ERC-721 whose current holder (ownerOf) controls the matching BallastAccount.
-/// @dev Hackathon safety restrictions (disclosed in UI and docs/SECURITY.md):
+/// @dev (v2) The token is transferable at any time: whoever holds it controls the whole account, including an open
+///      loan, its collateral, MUSD, reserve and hedge module. Buying an account means taking on its debt.
 ///      - Only the factory can mint. There is no burn path.
-///      - A token cannot move while its account has an active Mezo trove.
-///      - Tokens can only be sent to addresses without code (EOAs), so control cannot be
-///        stranded in a contract that cannot act on it.
+///      - Tokens can only be sent to addresses without code (EOAs), so control cannot be stranded in a contract
+///        that cannot act on it (marketplace escrow contracts are therefore not supported yet).
+///      - On transfer the account clears its custom payout address so income follows the new holder.
 contract BallastAccountNFT is ERC721 {
     address public immutable factory;
 
     error OnlyFactory();
-    error TransferLockedActiveTrove(uint256 tokenId);
     error RecipientMustBeEOA(address to);
 
     constructor(address factory_) ERC721("Ballast Account", "BALLAST") {
@@ -40,8 +40,9 @@ contract BallastAccountNFT is ERC721 {
             // transfer (burn is unreachable: no external path calls _update with to == 0 besides OZ's
             // transferFrom, which rejects address(0) as ERC721InvalidReceiver)
             if (to.code.length != 0) revert RecipientMustBeEOA(to);
-            address account = IBallastFactoryView(factory).accountOf(tokenId);
-            if (IBallastAccountView(account).hasActiveTrove()) revert TransferLockedActiveTrove(tokenId);
+            from = super._update(to, tokenId, auth);
+            IBallastAccountHook(IBallastFactoryView(factory).accountOf(tokenId)).controllerChanged(to);
+            return from;
         }
         return super._update(to, tokenId, auth);
     }

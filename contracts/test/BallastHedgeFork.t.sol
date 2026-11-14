@@ -25,6 +25,10 @@ contract ForkBTC is ERC20 {
     }
 }
 
+interface ITroveManagerLite {
+    function getTroveDebt(address) external view returns (uint256);
+}
+
 interface IPoolReserves {
     function getReserves() external view returns (uint256, uint256, uint256);
 }
@@ -70,7 +74,7 @@ contract BallastHedgeForkTest is Test {
         address predFactory = vm.computeCreateAddress(me, n + 2);
         BallastRouter router = new BallastRouter(predFactory, MUSD);
         BallastAccountNFT nft = new BallastAccountNFT(predFactory);
-        factory = new BallastFactory(address(nft), address(router), BO, TM, MUSD);
+        factory = new BallastFactory(address(nft), address(router), BO, TM, MUSD, PF);
         vm.deal(merchant, 1 ether);
         vm.startPrank(merchant);
         address a;
@@ -169,6 +173,12 @@ contract BallastHedgeForkTest is Test {
         vm.prank(merchant);
         hedge.sendToAccount();
         assertEq(IERC20(MUSD).balanceOf(address(account)), acct0 + held, "funds go to the Ballast account");
+        assertEq(account.pendingIncome(), 0, "credited as the owner's MUSD, not re-split as income");
+        // ...and the owner uses it to repay the Mezo loan
+        uint256 debt0 = ITroveManagerLite(TM).getTroveDebt(address(account));
+        vm.prank(merchant);
+        account.repay(100e18, address(0), address(0));
+        assertEq(ITroveManagerLite(TM).getTroveDebt(address(account)), debt0 - 100e18);
     }
 
     function test_fork_onlyController() public onlyFork {

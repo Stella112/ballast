@@ -27,6 +27,12 @@ contract StandInTM {
     function set(address b, uint8 s, uint256 d) external { status[b] = s; debt[b] = d; }
     function getTroveStatus(address b) external view returns (uint8) { return status[b]; }
     function getTroveDebt(address b) external view returns (uint256) { return debt[b]; }
+    // stand-in ratio: fixed 3,300 MUSD of collateral value over the debt
+    function getCurrentICR(address b, uint256) external view returns (uint256) { return debt[b] == 0 ? type(uint256).max : 3300e18 * 1e18 / debt[b]; }
+}
+
+contract StandInPF {
+    function fetchPrice() external pure returns (uint256) { return 68_000e18; }
 }
 
 contract StandInBO {
@@ -55,6 +61,7 @@ contract BallastUnitTest is Test {
     StandInMUSD musd;
     StandInTM tm;
     StandInBO bo;
+    StandInPF pf;
     BallastRouter router;
     BallastAccountNFT nft;
     BallastFactory factory;
@@ -71,12 +78,13 @@ contract BallastUnitTest is Test {
         musd = new StandInMUSD();
         tm = new StandInTM();
         bo = new StandInBO(musd, tm);
+        pf = new StandInPF();
         musd.setBO(address(bo));
         uint256 n = vm.getNonce(address(this));
         address predFactory = vm.computeCreateAddress(address(this), n + 2);
         router = new BallastRouter(predFactory, address(musd));
         nft = new BallastAccountNFT(predFactory);
-        factory = new BallastFactory(address(nft), address(router), address(bo), address(tm), address(musd));
+        factory = new BallastFactory(address(nft), address(router), address(bo), address(tm), address(musd), address(pf));
         vm.prank(merchant);
         address a;
         (tokenId, a) = factory.createAccount();
@@ -133,7 +141,7 @@ contract BallastUnitTest is Test {
         v = uint16(bound(v, 0, 10_000 - r));
         _open();
         vm.prank(merchant);
-        account.setPolicy(r, v, false, address(0));
+        account.setPolicy(r, v, false, address(0), 0);
         _fundPayer(amount);
         (BallastRouter.Invoice memory inv, bytes memory sig) = _inv(keccak256(abi.encode(amount, r, v)), amount, block.timestamp + 1);
         (uint256 s, uint256 res, uint256 rep) = router.computeSplit(amount, r, v, false);
@@ -141,14 +149,12 @@ contract BallastUnitTest is Test {
         uint256 m0 = musd.balanceOf(merchant);
         uint256 a0 = musd.balanceOf(address(account));
         uint256 headroom = account.maxRepayable();
-        vm.prank(payer);
         if (rep > headroom) {
-            vm.expectRevert(abi.encodeWithSelector(BallastAccount.RepayExceedsHeadroom.selector, rep, headroom));
-            router.payInvoice(inv, sig, address(0), address(0));
-            assertEq(musd.balanceOf(payer), amount, "no partial state");
-            assertFalse(router.invoicePaid(tokenId, inv.invoiceId));
-            return;
+            // v2: repayment is capped at Mezo's minimum debt; the excess goes to the owner
+            s += rep - headroom;
+            rep = headroom;
         }
+        vm.prank(payer);
         router.payInvoice(inv, sig, address(0), address(0));
         assertEq(musd.balanceOf(payer), 0);
         assertEq(musd.balanceOf(merchant) - m0, s);
@@ -160,7 +166,7 @@ contract BallastUnitTest is Test {
     function test_payInvoice_replay_expiry_badSig_zero_unknown() public {
         _open();
         vm.prank(merchant);
-        account.setPolicy(2000, 500, false, address(0));
+        account.setPolicy(2000, 500, false, address(0), 0);
         _fundPayer(1000e18);
         (BallastRouter.Invoice memory inv, bytes memory sig) = _inv("a", 100e18, block.timestamp + 10);
         vm.startPrank(payer);
@@ -202,7 +208,7 @@ contract BallastUnitTest is Test {
     function test_payInvoice_insufficientAllowance_revertsWithoutState() public {
         _open();
         vm.prank(merchant);
-        account.setPolicy(2000, 500, false, address(0));
+        account.setPolicy(2000, 500, false, address(0), 0);
         musd.mint(payer, 100e18);
         vm.prank(payer);
         musd.approve(address(router), 50e18);
@@ -218,7 +224,7 @@ contract BallastUnitTest is Test {
 
     function test_paused_routesRepayShareToSpendable_andNoTroveNeeded() public {
         vm.prank(merchant);
-        account.setPolicy(5000, 1000, true, address(0));
+        account.setPolicy(5000, 1000, true, address(0), 0);
         _fundPayer(100e18);
         (BallastRouter.Invoice memory inv, bytes memory sig) = _inv("p", 100e18, block.timestamp + 10);
         vm.prank(payer);
@@ -227,15 +233,103 @@ contract BallastUnitTest is Test {
         assertEq(account.hedgeReserve(), 10e18);
     }
 
-    function test_repayLegWithoutActiveTrove_revertsWhole() public {
+    function test_noActiveTrove_repayShareGoesToOwner() public {
         vm.prank(merchant);
-        account.setPolicy(2000, 0, false, address(0));
+        account.setPolicy(2000, 0, false, address(0), 0);
         _fundPayer(100e18);
         (BallastRouter.Invoice memory inv, bytes memory sig) = _inv("n", 100e18, block.timestamp + 10);
         vm.prank(payer);
-        vm.expectRevert(BallastAccount.NoActiveTrove.selector);
         router.payInvoice(inv, sig, address(0), address(0));
-        assertEq(musd.balanceOf(payer), 100e18);
+        assertEq(musd.balanceOf(merchant), 100e18, "nothing to repay: all to owner");
+    }
+
+    // ---------------- v2: pay(), cap, cash buffer, keeper ----------------
+    event Payment(uint256 indexed accountId, bytes32 indexed reference_, address indexed payer, uint256 amount, uint256 toOwner, uint256 toReserve, uint256 repaid, uint256 icrBefore, uint256 icrAfter);
+
+    function test_pay_splits_emitsRatioBeforeAfter() public {
+        _open(); // debt 2300 -> headroom 300
+        vm.prank(merchant);
+        account.setPolicy(2000, 500, false, address(0), 0);
+        _fundPayer(100e18);
+        uint256 icr0 = account.currentICR();
+        uint256 icr1 = uint256(3300e18) * 1e18 / uint256(2280e18);
+        vm.expectEmit(true, true, true, true, address(router));
+        emit Payment(tokenId, "order-1", payer, 100e18, 75e18, 5e18, 20e18, icr0, icr1);
+        vm.prank(payer);
+        router.pay(tokenId, 100e18, "order-1");
+        assertEq(musd.balanceOf(merchant), 75e18);
+        assertEq(account.hedgeReserve(), 5e18);
+        assertEq(tm.getTroveDebt(address(account)), 2280e18);
+        assertGt(icr1, icr0);
+        vm.prank(payer);
+        vm.expectRevert(abi.encodeWithSelector(BallastRouter.UnknownAccount.selector, 77));
+        router.pay(77, 1e18, "x");
+        vm.prank(payer);
+        vm.expectRevert(BallastRouter.ZeroAmount.selector);
+        router.pay(tokenId, 0, "x");
+    }
+
+    function test_cap_repayStopsAtMinimumDebt_excessToOwner() public {
+        _open(); // headroom 300
+        vm.prank(merchant);
+        account.setPolicy(10_000, 0, false, address(0), 0);
+        _fundPayer(1000e18);
+        vm.prank(payer);
+        router.pay(tokenId, 1000e18, "big");
+        assertEq(tm.getTroveDebt(address(account)), 2000e18, "debt stops at Mezo minimum");
+        assertEq(musd.balanceOf(merchant), 700e18, "excess to owner");
+        assertEq(account.maxRepayable(), 0);
+    }
+
+    function test_cashBuffer_topsUpOwnerBeforeRepaying() public {
+        _open();
+        vm.prank(merchant);
+        account.setPolicy(1000, 0, false, address(0), 95e18); // 10% repay, keep 95 MUSD cash
+        _fundPayer(300e18);
+        vm.startPrank(payer);
+        router.pay(tokenId, 100e18, "1"); // owner would get 90 < 95 -> 5 shifts from repay
+        assertEq(musd.balanceOf(merchant), 95e18);
+        assertEq(tm.getTroveDebt(address(account)), 2300e18 - 5e18);
+        router.pay(tokenId, 100e18, "2"); // buffer already met -> normal 90/10
+        assertEq(musd.balanceOf(merchant), 185e18);
+        assertEq(tm.getTroveDebt(address(account)), 2300e18 - 15e18);
+        vm.stopPrank();
+    }
+
+    function test_keeper_processIncome_anyoneCanTrigger_cannotRedirect() public {
+        _open();
+        address payoutAddr = makeAddr("payout");
+        vm.prank(merchant);
+        account.setPolicy(2000, 500, false, payoutAddr, 0);
+        uint256 owner0 = account.ownerMUSD();
+        assertEq(owner0, 2100e18, "borrowed MUSD is the owner's, not income");
+        vm.prank(stranger);
+        vm.expectRevert(BallastAccount.NothingToProcess.selector);
+        account.processIncome(address(0), address(0));
+
+        musd.mint(address(account), 200e18); // MUSD lands directly (e.g. from a bridge)
+        assertEq(account.pendingIncome(), 200e18);
+        vm.prank(stranger); // keeper
+        account.processIncome(address(0), address(0));
+        assertEq(musd.balanceOf(payoutAddr), 150e18, "owner share to the owner's payout");
+        assertEq(musd.balanceOf(stranger), 0, "keeper gets nothing");
+        assertEq(account.hedgeReserve(), 10e18);
+        assertEq(tm.getTroveDebt(address(account)), 2300e18 - 40e18);
+        assertEq(account.ownerMUSD(), owner0, "owner funds untouched");
+        assertEq(account.pendingIncome(), 0);
+    }
+
+    function test_depositMUSD_creditsOwner_notIncome() public {
+        musd.mint(stranger, 50e18);
+        vm.startPrank(stranger);
+        musd.approve(address(account), 50e18);
+        account.depositMUSD(50e18);
+        vm.stopPrank();
+        assertEq(account.ownerMUSD(), 50e18);
+        assertEq(account.pendingIncome(), 0);
+        vm.prank(merchant);
+        account.withdrawMUSD(merchant, 50e18);
+        assertEq(musd.balanceOf(merchant), 50e18);
     }
 
     // ---------------- access control ----------------
@@ -246,7 +340,7 @@ contract BallastUnitTest is Test {
         vm.expectRevert(BallastAccount.NotController.selector);
         account.openTrove{value: 1}(1, address(0), address(0));
         vm.expectRevert(BallastAccount.NotController.selector);
-        account.setPolicy(0, 0, false, stranger);
+        account.setPolicy(0, 0, false, stranger, 0);
         vm.expectRevert(BallastAccount.NotController.selector);
         account.withdrawMUSD(stranger, 1);
         vm.expectRevert(BallastAccount.NotController.selector);
@@ -262,26 +356,29 @@ contract BallastUnitTest is Test {
         vm.expectRevert(BallastAccount.NotController.selector);
         account.rescueToken(address(musd), stranger, 1);
         vm.expectRevert(BallastAccount.NotRouter.selector);
-        account.applyPayment(bytes32(0), 1, 1, address(0), address(0));
+        account.applyPayment(bytes32(0), 2, 0, 1, 1, address(0), address(0));
+        vm.expectRevert(BallastAccount.NotNFT.selector);
+        account.controllerChanged(stranger);
         vm.stopPrank();
     }
 
     function test_setPolicy_rejectsBpsOver10000() public {
         vm.prank(merchant);
         vm.expectRevert(BallastAccount.InvalidBps.selector);
-        account.setPolicy(9000, 1001, false, address(0));
+        account.setPolicy(9000, 1001, false, address(0), 0);
     }
 
     function test_reserveNotWithdrawableAsFree_andCannotRescueMUSD() public {
         _open();
         vm.prank(merchant);
-        account.setPolicy(0, 1000, false, address(0));
+        account.setPolicy(0, 1000, false, address(0), 0);
         _fundPayer(100e18);
         (BallastRouter.Invoice memory inv, bytes memory sig) = _inv("r", 100e18, block.timestamp + 10);
         vm.prank(payer);
         router.payInvoice(inv, sig, address(0), address(0));
         uint256 free = account.freeMUSD();
         assertEq(musd.balanceOf(address(account)), free + 10e18);
+        assertEq(account.pendingIncome(), 0);
         vm.startPrank(merchant);
         vm.expectRevert(abi.encodeWithSelector(BallastAccount.InsufficientFreeMUSD.selector, free + 1, free));
         account.withdrawMUSD(merchant, free + 1);
@@ -305,13 +402,12 @@ contract BallastUnitTest is Test {
         assertEq(BallastAccount(payable(a2)).controller(), stranger);
     }
 
-    function test_nft_lockedWhileActive_EOAonly_controlFollowsHolder() public {
+    function test_nft_transferableWithOpenLoan_EOAonly_controlAndIncomeFollowHolder() public {
         _open();
+        address oldPayout = makeAddr("oldPayout");
         vm.prank(merchant);
-        vm.expectRevert(abi.encodeWithSelector(BallastAccountNFT.TransferLockedActiveTrove.selector, tokenId));
-        nft.transferFrom(merchant, stranger, tokenId);
+        account.setPolicy(2000, 0, false, oldPayout, 0);
 
-        tm.set(address(account), 2, 0); // closed
         vm.prank(merchant);
         vm.expectRevert(abi.encodeWithSelector(BallastAccountNFT.RecipientMustBeEOA.selector, address(router)));
         nft.transferFrom(merchant, address(router), tokenId);
@@ -319,21 +415,31 @@ contract BallastUnitTest is Test {
         // invoice signed by the old holder becomes invalid after transfer
         (BallastRouter.Invoice memory inv, bytes memory sig) = _inv("old", 1e18, block.timestamp + 10);
         vm.prank(merchant);
-        nft.transferFrom(merchant, stranger, tokenId);
+        nft.transferFrom(merchant, stranger, tokenId); // loan is OPEN: the whole account moves
         assertEq(account.controller(), stranger);
+        assertTrue(account.hasActiveTrove());
+        assertEq(account.payoutAddress(), stranger, "custom payout cleared: income follows the new holder");
         vm.prank(merchant);
         vm.expectRevert(BallastAccount.NotController.selector);
-        account.setPolicy(0, 0, false, address(0));
-        _fundPayer(1e18);
+        account.withdrawMUSD(merchant, 1);
+        _fundPayer(101e18);
         vm.prank(payer);
         vm.expectRevert(BallastRouter.BadSignature.selector);
         router.payInvoice(inv, sig, address(0), address(0));
+        vm.prank(payer);
+        router.pay(tokenId, 100e18, "after-transfer");
+        assertEq(musd.balanceOf(stranger), 80e18);
+        assertEq(musd.balanceOf(oldPayout), 0);
+        // new holder controls the owner's MUSD and the loan
+        vm.prank(stranger);
+        account.withdrawMUSD(stranger, 2100e18);
+        assertEq(musd.balanceOf(stranger), 2180e18);
     }
 
     function test_factory_rejectsBadWiring() public {
         BallastAccountNFT otherNft = new BallastAccountNFT(address(0xdead));
         vm.expectRevert(BallastFactory.BadWiring.selector);
-        new BallastFactory(address(otherNft), address(router), address(bo), address(tm), address(musd));
+        new BallastFactory(address(otherNft), address(router), address(bo), address(tm), address(musd), address(pf));
     }
 
     function test_account_receivesBTC_andControllerWithdraws() public {

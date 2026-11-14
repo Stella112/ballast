@@ -75,6 +75,7 @@ contract BallastBridgeForkTest is Test {
     address constant BO = 0xCdF7028ceAB81fA0C6971208e83fa7872994beE5;
     address constant TM = 0xE47c80e8c23f6B4A1aE41c34837a0599D5D16bb0;
     address constant MUSD = 0x118917a40FAF1CD7a13dB0Ef56C86De7973Ac503;
+    address constant PF = 0x86bCF0841622a5dAC14A313a15f96A95421b9366;
     address constant POOLS_ROUTER = 0x9a1ff7FE3a0F69959A3fBa1F1e5ee18e1A9CD7E9;
     address constant POOL_FACTORY = 0x4947243CC818b627A5D06d14C4eCe7398A23Ce1A;
     address constant ORACLE_PRECOMPILE = 0x7b7c000000000000000000000000000000000015;
@@ -107,7 +108,7 @@ contract BallastBridgeForkTest is Test {
         address predFactory = vm.computeCreateAddress(me, n + 2);
         router = new BallastRouter(predFactory, MUSD);
         BallastAccountNFT nft = new BallastAccountNFT(predFactory);
-        factory = new BallastFactory(address(nft), address(router), BO, TM, MUSD);
+        factory = new BallastFactory(address(nft), address(router), BO, TM, MUSD, PF);
 
         vm.deal(merchant, 1 ether);
         vm.startPrank(merchant);
@@ -115,7 +116,7 @@ contract BallastBridgeForkTest is Test {
         (tokenId, a) = factory.createAccount();
         account = BallastAccount(payable(a));
         account.openTrove{value: 0.09 ether}(2100e18, address(0), address(0));
-        account.setPolicy(2000, 500, false, payout);
+        account.setPolicy(2000, 500, false, payout, 0);
         vm.stopPrank();
 
         wusdc = new TestUSDC();

@@ -5,12 +5,16 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import {IERC721} from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
-import {IBorrowerOperations, ITroveManager} from "../interfaces/IMezo.sol";
+import {IBorrowerOperations, ITroveManager, IPriceFeed} from "../interfaces/IMezo.sol";
 
 /// @title BallastAccount
-/// @notice A contract account that owns one Mezo trove. Control = current holder of the Ballast NFT.
-///         The router may only (a) credit the hedge reserve and (b) repay this account's own trove,
-///         using MUSD it delivered in the same transaction. It can never move collateral or free funds.
+/// @notice (v2) A contract account that owns one Mezo trove. Control = current holder of the Ballast NFT.
+///         Incoming MUSD is split by the controller's policy: repay this account's own trove (capped at Mezo's
+///         minimum debt; the excess goes to the owner), hedge reserve, and the rest to the owner's payout address.
+///         Two entry points apply the policy: the router (payer pushes MUSD through it) and `processIncome`,
+///         which ANYONE (a keeper) may call for MUSD that arrived in the account directly. Neither can choose
+///         destinations or amounts; they come from account state. Nobody but the controller can move collateral
+///         or the owner's MUSD.
 /// @dev UNAUDITED. Testnet demo only. See docs/SECURITY.md.
 contract BallastAccount is ReentrancyGuard {
     using SafeERC20 for IERC20;
@@ -26,6 +30,7 @@ contract BallastAccount is ReentrancyGuard {
     IBorrowerOperations public immutable borrowerOperations;
     ITroveManager public immutable troveManager;
     IERC20 public immutable musd;
+    IPriceFeed public immutable priceFeed;
 
     // ---- policy (controller-owned) ----
     struct Policy {
@@ -33,6 +38,7 @@ contract BallastAccount is ReentrancyGuard {
         uint16 reserveBps; // share kept in this account as an uninvested MUSD "hedge reserve"
         bool paused; // when true the repay share is paid out as spendable instead
         address payout; // spendable recipient; address(0) = current controller
+        uint256 minCash; // cash buffer: while the payout address holds less MUSD than this, the repay share tops it up first
     }
 
     Policy internal _policy;
@@ -40,8 +46,26 @@ contract BallastAccount is ReentrancyGuard {
     /// @notice MUSD held in this account that is earmarked as reserve (not spendable via withdrawMUSD).
     uint256 public hedgeReserve;
 
+    /// @notice MUSD in this account that belongs to the owner outright (borrowed or deposited). Withdrawable by the
+    ///         controller. Anything in the balance beyond `ownerMUSD + hedgeReserve` is income not yet processed.
+    uint256 public ownerMUSD;
+
     // ---- events ----
-    event PolicyUpdated(uint16 repayBps, uint16 reserveBps, bool paused, address payout);
+    event PolicyUpdated(uint16 repayBps, uint16 reserveBps, bool paused, address payout, uint256 minCash);
+    /// @notice One policy application. `source` = router or keeper; icr values are Mezo collateral ratios (1e18),
+    ///         0 if there is no active trove or Mezo's price feed is unavailable.
+    event PaymentApplied(
+        address indexed source,
+        bytes32 indexed ref,
+        uint256 amount,
+        uint256 toOwner,
+        uint256 toReserve,
+        uint256 repaid,
+        uint256 icrBefore,
+        uint256 icrAfter
+    );
+    event MUSDDeposited(address indexed from, uint256 amount);
+    event ControllerChanged(address indexed newController);
     event TroveOpened(uint256 collateral, uint256 debtAmount, uint256 totalDebt);
     event Repaid(address indexed source, bytes32 indexed ref, uint256 amount, uint256 debtBefore, uint256 debtAfter);
     event ReserveCredited(bytes32 indexed ref, uint256 amount, uint256 newReserve);
@@ -56,6 +80,8 @@ contract BallastAccount is ReentrancyGuard {
     // ---- errors ----
     error NotController();
     error NotRouter();
+    error NotNFT();
+    error NothingToProcess();
     error InvalidBps();
     error ZeroAmount();
     error NoActiveTrove();
@@ -74,11 +100,12 @@ contract BallastAccount is ReentrancyGuard {
         address router_,
         address borrowerOperations_,
         address troveManager_,
-        address musd_
+        address musd_,
+        address priceFeed_
     ) {
         if (
             nft_ == address(0) || router_ == address(0) || borrowerOperations_ == address(0)
-                || troveManager_ == address(0) || musd_ == address(0)
+                || troveManager_ == address(0) || musd_ == address(0) || priceFeed_ == address(0)
         ) revert ZeroAddress();
         factory = msg.sender;
         nft = IERC721(nft_);
@@ -87,8 +114,9 @@ contract BallastAccount is ReentrancyGuard {
         borrowerOperations = IBorrowerOperations(borrowerOperations_);
         troveManager = ITroveManager(troveManager_);
         musd = IERC20(musd_);
+        priceFeed = IPriceFeed(priceFeed_);
         // Conservative default ("Keep my BTC" preset is applied by the UI); payback starts paused.
-        _policy = Policy({repayBps: 0, reserveBps: 0, paused: true, payout: address(0)});
+        _policy = Policy({repayBps: 0, reserveBps: 0, paused: true, payout: address(0), minCash: 0});
     }
 
     // ------------------------------------------------------------------
@@ -127,10 +155,52 @@ contract BallastAccount is ReentrancyGuard {
         return troveManager.getTroveStatus(address(this)) == TROVE_ACTIVE;
     }
 
-    /// @notice MUSD in this account not earmarked as reserve.
+    /// @notice The owner's MUSD held here (withdrawable, usable for manual repayment).
     function freeMUSD() public view returns (uint256) {
+        return ownerMUSD;
+    }
+
+    /// @notice MUSD that arrived directly (e.g. from a bridge) and has not had the policy applied yet.
+    function pendingIncome() public view returns (uint256) {
         uint256 bal = musd.balanceOf(address(this));
-        return bal > hedgeReserve ? bal - hedgeReserve : 0;
+        uint256 known = ownerMUSD + hedgeReserve;
+        return bal > known ? bal - known : 0;
+    }
+
+    /// @notice Current Mezo collateral ratio (1e18 = 100%); 0 if no active trove or the price feed is unavailable.
+    function currentICR() public view returns (uint256) {
+        if (!hasActiveTrove()) return 0;
+        try priceFeed.fetchPrice() returns (uint256 price) {
+            return troveManager.getCurrentICR(address(this), price);
+        } catch {
+            return 0;
+        }
+    }
+
+    /// @notice How `amount` of incoming MUSD is split right now. Legs always sum to `amount`.
+    ///         1) policy percentages (repay share = 0 while paused),
+    ///         2) cash buffer: while the payout address holds less than `minCash`, the repay share tops it up first,
+    ///         3) cap: repayment never exceeds what Mezo accepts above its minimum debt (0 without an active trove);
+    ///            the excess goes to the owner.
+    function quoteSplit(uint256 amount) public view returns (uint256 toOwner, uint256 toReserve, uint256 repay) {
+        Policy memory p = _policy;
+        repay = p.paused ? 0 : (amount * p.repayBps) / BPS;
+        toReserve = (amount * p.reserveBps) / BPS;
+        toOwner = amount - repay - toReserve;
+        if (p.minCash > 0 && repay > 0) {
+            uint256 cash = musd.balanceOf(payoutAddress()) + toOwner;
+            if (cash < p.minCash) {
+                uint256 shift = p.minCash - cash;
+                if (shift > repay) shift = repay;
+                repay -= shift;
+                toOwner += shift;
+            }
+        }
+        uint256 cap = maxRepayable();
+        if (repay > cap) {
+            toOwner += repay - cap;
+            repay = cap;
+        }
     }
 
     /// @notice Largest repayment Mezo accepts right now without closing:
@@ -155,7 +225,9 @@ contract BallastAccount is ReentrancyGuard {
         nonReentrant
     {
         if (msg.value == 0 || debtAmount == 0) revert ZeroAmount();
+        uint256 bal0 = musd.balanceOf(address(this));
         borrowerOperations.openTrove{value: msg.value}(debtAmount, upperHint, lowerHint);
+        ownerMUSD += musd.balanceOf(address(this)) - bal0;
         emit TroveOpened(msg.value, debtAmount, troveManager.getTroveDebt(address(this)));
     }
 
@@ -179,22 +251,40 @@ contract BallastAccount is ReentrancyGuard {
     /// @notice Borrow more MUSD into this account.
     function borrow(uint256 amount, address upperHint, address lowerHint) external onlyController nonReentrant {
         if (amount == 0) revert ZeroAmount();
+        uint256 bal0 = musd.balanceOf(address(this));
         borrowerOperations.withdrawMUSD(amount, upperHint, lowerHint);
+        ownerMUSD += musd.balanceOf(address(this)) - bal0;
         emit Borrowed(amount);
     }
 
-    /// @notice Repay from this account's free (non-reserve) MUSD.
+    /// @notice Repay from the owner's MUSD held in this account.
     function repay(uint256 amount, address upperHint, address lowerHint) external onlyController nonReentrant {
-        if (amount > freeMUSD()) revert InsufficientFreeMUSD(amount, freeMUSD());
+        if (amount > ownerMUSD) revert InsufficientFreeMUSD(amount, ownerMUSD);
+        uint256 headroom = maxRepayable();
+        if (amount > headroom) revert RepayExceedsHeadroom(amount, headroom);
+        ownerMUSD -= amount;
+        uint256 icr0 = currentICR();
         _repay(amount, upperHint, lowerHint, bytes32(0));
+        emit PaymentApplied(msg.sender, bytes32(0), amount, 0, 0, amount, icr0, currentICR());
     }
 
-    /// @notice Close the trove. Needs (totalDebt - 200 MUSD gas comp) free MUSD in this account.
+    /// @notice Add MUSD to the owner's balance here (anyone may deposit; only the controller can withdraw).
+    function depositMUSD(uint256 amount) external nonReentrant {
+        if (amount == 0) revert ZeroAmount();
+        musd.safeTransferFrom(msg.sender, address(this), amount);
+        ownerMUSD += amount;
+        emit MUSDDeposited(msg.sender, amount);
+    }
+
+    /// @notice Close the trove. Needs (totalDebt - 200 MUSD gas comp) of the owner's MUSD in this account.
     ///         Collateral returns to this account as native BTC.
     function closeTrove() external onlyController nonReentrant {
         if (!hasActiveTrove()) revert NoActiveTrove();
+        uint256 bal0 = musd.balanceOf(address(this));
         borrowerOperations.closeTrove();
-        if (musd.balanceOf(address(this)) < hedgeReserve) revert ReserveInvariantBroken();
+        uint256 burned = bal0 - musd.balanceOf(address(this));
+        if (burned > ownerMUSD) revert InsufficientFreeMUSD(burned, ownerMUSD);
+        ownerMUSD -= burned;
         emit TroveClosed();
     }
 
@@ -206,16 +296,28 @@ contract BallastAccount is ReentrancyGuard {
     // ------------------------------------------------------------------
     // Controller: funds & policy
     // ------------------------------------------------------------------
-    function setPolicy(uint16 repayBps, uint16 reserveBps, bool paused, address payout) external onlyController {
+    function setPolicy(uint16 repayBps, uint16 reserveBps, bool paused, address payout, uint256 minCash)
+        external
+        onlyController
+    {
         if (uint256(repayBps) + uint256(reserveBps) > BPS) revert InvalidBps();
-        _policy = Policy({repayBps: repayBps, reserveBps: reserveBps, paused: paused, payout: payout});
-        emit PolicyUpdated(repayBps, reserveBps, paused, payout);
+        if (payout == address(this)) revert ZeroAddress();
+        _policy = Policy({repayBps: repayBps, reserveBps: reserveBps, paused: paused, payout: payout, minCash: minCash});
+        emit PolicyUpdated(repayBps, reserveBps, paused, payout, minCash);
+    }
+
+    /// @notice Called by the NFT on every transfer: the custom payout address is cleared so income follows the
+    ///         new holder (payout = controller) until they set their own. Percentages are kept.
+    function controllerChanged(address newController) external {
+        if (msg.sender != address(nft)) revert NotNFT();
+        _policy.payout = address(0);
+        emit ControllerChanged(newController);
     }
 
     function withdrawMUSD(address to, uint256 amount) external onlyController nonReentrant {
         if (to == address(0)) revert ZeroAddress();
-        uint256 free = freeMUSD();
-        if (amount > free) revert InsufficientFreeMUSD(amount, free);
+        if (amount > ownerMUSD) revert InsufficientFreeMUSD(amount, ownerMUSD);
+        ownerMUSD -= amount;
         musd.safeTransfer(to, amount);
         emit MUSDWithdrawn(to, amount);
     }
@@ -244,30 +346,53 @@ contract BallastAccount is ReentrancyGuard {
     }
 
     // ------------------------------------------------------------------
-    // Router: the ONLY entry point it has. MUSD for both legs was already
-    // transferred into this account by the router in the same transaction.
+    // Policy application. Destinations and amounts come only from this account's state.
     // ------------------------------------------------------------------
-    function applyPayment(bytes32 ref, uint256 reserveAmount, uint256 repayAmount, address upperHint, address lowerHint)
+
+    /// @notice Router entry point. The router has ALREADY sent `toReserve + repay` MUSD here and `toOwner` to the
+    ///         payout address, using the amounts from `quoteSplit(amount)` in the same transaction.
+    function applyPayment(bytes32 ref, uint256 amount, uint256 toOwner, uint256 toReserve, uint256 repayAmount, address upperHint, address lowerHint)
         external
         onlyRouter
         nonReentrant
+        returns (uint256 icrBefore, uint256 icrAfter)
     {
-        if (reserveAmount > 0) {
-            hedgeReserve += reserveAmount;
-            emit ReserveCredited(ref, reserveAmount, hedgeReserve);
+        (icrBefore, icrAfter) = _apply(ref, toReserve, repayAmount, upperHint, lowerHint);
+        emit PaymentApplied(msg.sender, ref, amount, toOwner, toReserve, repayAmount, icrBefore, icrAfter);
+    }
+
+    /// @notice Keeper entry point: ANYONE may apply the policy to MUSD that arrived here directly (for example from
+    ///         a bridge). The caller chooses nothing but gas hints; the split and the destinations are the owner's.
+    function processIncome(address upperHint, address lowerHint)
+        external
+        nonReentrant
+        returns (uint256 toOwner, uint256 toReserve, uint256 repaid)
+    {
+        uint256 income = pendingIncome();
+        if (income == 0) revert NothingToProcess();
+        (toOwner, toReserve, repaid) = quoteSplit(income);
+        (uint256 icr0, uint256 icr1) = _apply(bytes32(0), toReserve, repaid, upperHint, lowerHint);
+        if (toOwner > 0) musd.safeTransfer(payoutAddress(), toOwner);
+        emit PaymentApplied(msg.sender, bytes32(0), income, toOwner, toReserve, repaid, icr0, icr1);
+    }
+
+    function _apply(bytes32 ref, uint256 toReserve, uint256 repayAmount, address upperHint, address lowerHint)
+        internal
+        returns (uint256 icrBefore, uint256 icrAfter)
+    {
+        icrBefore = currentICR();
+        if (toReserve > 0) {
+            hedgeReserve += toReserve;
+            emit ReserveCredited(ref, toReserve, hedgeReserve);
         }
-        if (repayAmount > 0) {
-            _repay(repayAmount, upperHint, lowerHint, ref);
-        }
-        if (musd.balanceOf(address(this)) < hedgeReserve) revert ReserveInvariantBroken();
+        if (repayAmount > 0) _repay(repayAmount, upperHint, lowerHint, ref);
+        if (musd.balanceOf(address(this)) < hedgeReserve + ownerMUSD) revert ReserveInvariantBroken();
+        icrAfter = repayAmount > 0 ? currentICR() : icrBefore;
     }
 
     function _repay(uint256 amount, address upperHint, address lowerHint, bytes32 ref) internal {
         if (amount == 0) revert ZeroAmount();
         if (!hasActiveTrove()) revert NoActiveTrove();
-        uint256 headroom = maxRepayable();
-        if (amount > headroom) revert RepayExceedsHeadroom(amount, headroom);
-
         uint256 debtBefore = troveManager.getTroveDebt(address(this));
         borrowerOperations.repayMUSD(amount, upperHint, lowerHint);
         uint256 debtAfter = troveManager.getTroveDebt(address(this));

@@ -7,6 +7,10 @@ import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import {IMorpho, MorphoMarketParams, IPoolsRouter} from "../interfaces/IExternal.sol";
 
+interface IBallastAccountDeposit {
+    function depositMUSD(uint256 amount) external;
+}
+
 interface IBallastFactoryView {
     function accountOf(uint256 tokenId) external view returns (address);
     function nft() external view returns (address);
@@ -144,7 +148,11 @@ contract BallastHedge is ReentrancyGuard {
         address acct = account();
         uint256 m = musd.balanceOf(address(this));
         uint256 b = btc.balanceOf(address(this));
-        if (m > 0) musd.safeTransfer(acct, m);
+        if (m > 0) {
+            // credited as the owner's MUSD (not as income to be split again)
+            musd.forceApprove(acct, m);
+            IBallastAccountDeposit(acct).depositMUSD(m);
+        }
         if (b > 0) btc.safeTransfer(acct, b);
         emit SentToAccount(acct, m, b);
     }

@@ -45,7 +45,7 @@ contract BallastForkTest is Test {
         address predFactory = vm.computeCreateAddress(me, n + 2);
         router = new BallastRouter(predFactory, MUSD);
         nft = new BallastAccountNFT(predFactory);
-        factory = new BallastFactory(address(nft), address(router), BO, TM, MUSD);
+        factory = new BallastFactory(address(nft), address(router), BO, TM, MUSD, PF);
         assertEq(address(router), predRouter);
         assertEq(address(factory), predFactory);
 
@@ -131,7 +131,7 @@ contract BallastForkTest is Test {
         vm.expectRevert(BallastAccount.NotController.selector);
         account.repay(1, address(0), address(0));
         vm.expectRevert(BallastAccount.NotController.selector);
-        account.setPolicy(0, 0, false, payer);
+        account.setPolicy(0, 0, false, payer, 0);
         vm.expectRevert(BallastAccount.NotController.selector);
         account.closeTrove();
         vm.stopPrank();
@@ -140,7 +140,7 @@ contract BallastForkTest is Test {
     function test_fork_gateB_invoice_20_5_75() public onlyFork {
         _open(2100e18, 0.09 ether);
         vm.startPrank(merchant);
-        account.setPolicy(2000, 500, false, payout);
+        account.setPolicy(2000, 500, false, payout, 0);
         account.withdrawMUSD(payer, 300e18); // genuine MUSD to payer wallet
         vm.stopPrank();
 
@@ -177,33 +177,59 @@ contract BallastForkTest is Test {
         account.withdrawMUSD(merchant, free + 1);
     }
 
-    function test_fork_repayBeyondFloorRevertsWholePayment() public onlyFork {
+    function test_fork_repayCappedAtMezoMinimumDebt_excessToOwner() public onlyFork {
         _open(1900e18, 0.09 ether); // net = 1901.9, headroom = 101.9
         vm.startPrank(merchant);
-        account.setPolicy(10_000, 0, false, address(0));
+        account.setPolicy(10_000, 0, false, payout, 0);
         account.withdrawMUSD(payer, 500e18);
         vm.stopPrank();
         uint256 head = account.maxRepayable();
         assertEq(head, 101.9e18);
+        uint256 icr0 = account.currentICR();
+        assertGt(icr0, 1.1e18);
 
-        BallastRouter.Invoice memory inv =
-            BallastRouter.Invoice({tokenId: tokenId, invoiceId: keccak256("big"), amount: 200e18, expiry: block.timestamp + 1});
-        bytes memory sig = _sign(inv);
         vm.startPrank(payer);
         IERC20(MUSD).approve(address(router), 200e18);
-        vm.expectRevert(abi.encodeWithSelector(BallastAccount.RepayExceedsHeadroom.selector, 200e18, head));
-        router.payInvoice(inv, sig, address(0), address(0));
+        router.pay(tokenId, 200e18, keccak256("big"));
         vm.stopPrank();
-        assertEq(IERC20(MUSD).balanceOf(payer), 500e18, "no partial state");
-        assertFalse(router.invoicePaid(tokenId, inv.invoiceId));
+        assertEq(IERC20(MUSD).balanceOf(payer), 300e18);
+        assertEq(IERC20(MUSD).balanceOf(payout), 200e18 - head, "excess above the cap goes to the owner");
+        assertEq(ITroveManager(TM).getTroveDebt(address(account)), 2000e18, "real Mezo debt stops at the minimum");
+        assertGt(account.currentICR(), icr0, "collateral ratio improved");
     }
 
-    function test_fork_nftLockedWhileTroveActive_thenCloseAndTransfer() public onlyFork {
+    function test_fork_keeper_processIncome_realMezoRepay() public onlyFork {
+        _open(2100e18, 0.09 ether);
+        vm.startPrank(merchant);
+        account.setPolicy(2000, 500, false, payout, 0);
+        account.withdrawMUSD(payer, 300e18);
+        vm.stopPrank();
+        uint256 debt0 = ITroveManager(TM).getTroveDebt(address(account));
+        uint256 owner0 = account.ownerMUSD();
+        vm.prank(payer);
+        IERC20(MUSD).transfer(address(account), 100e18); // lands directly, like a bridge delivery
+        assertEq(account.pendingIncome(), 100e18);
+        address keeper = makeAddr("keeper");
+        vm.prank(keeper);
+        account.processIncome(address(0), address(0));
+        assertEq(IERC20(MUSD).balanceOf(payout), 75e18);
+        assertEq(account.hedgeReserve(), 5e18);
+        assertEq(ITroveManager(TM).getTroveDebt(address(account)), debt0 - 20e18);
+        assertEq(account.ownerMUSD(), owner0);
+        assertEq(IERC20(MUSD).balanceOf(keeper), 0);
+    }
+
+    function test_fork_nftTransferWithOpenLoan_thenNewHolderCloses() public onlyFork {
         _open(2100e18, 0.09 ether);
         address newOwner = makeAddr("newOwner");
         vm.prank(merchant);
-        vm.expectRevert(abi.encodeWithSelector(BallastAccountNFT.TransferLockedActiveTrove.selector, tokenId));
-        nft.transferFrom(merchant, newOwner, tokenId);
+        nft.transferFrom(merchant, newOwner, tokenId); // open loan moves with the NFT
+        assertEq(account.controller(), newOwner);
+        assertEq(ITroveManager(TM).getTroveStatus(address(account)), 1);
+        vm.prank(merchant);
+        vm.expectRevert(BallastAccount.NotController.selector);
+        account.closeTrove();
+        merchant = newOwner; // the rest of the test acts as the new holder
 
         // close: needs debt-200 MUSD. Account holds 2100; debt-200 = 2102.1 (+tiny interest) -> top up from a funded holder
         uint256 need = ITroveManager(TM).getTroveDebt(address(account)) - 200e18;
@@ -214,7 +240,9 @@ contract BallastForkTest is Test {
         vm.prank(helper);
         IBorrowerOperations(BO).openTrove{value: 0.1 ether}(2000e18, address(0), address(0));
         vm.prank(helper);
-        IERC20(MUSD).transfer(address(account), need - have + 1e18);
+        IERC20(MUSD).approve(address(account), need - have + 1e18);
+        vm.prank(helper);
+        account.depositMUSD(need - have + 1e18);
 
         uint256 btc0 = address(account).balance;
         vm.prank(merchant);
@@ -225,11 +253,6 @@ contract BallastForkTest is Test {
         vm.prank(merchant);
         account.withdrawBTC(merchant, 0.09 ether);
 
-        vm.prank(merchant);
-        nft.transferFrom(merchant, newOwner, tokenId);
-        assertEq(account.controller(), newOwner);
-        vm.prank(merchant);
-        vm.expectRevert(BallastAccount.NotController.selector);
-        account.withdrawMUSD(merchant, 1);
+        assertEq(newOwner.balance, 0.09 ether, "new holder received the collateral");
     }
 }

@@ -14,6 +14,7 @@ contract Deploy is Script {
     address constant BO = 0xCdF7028ceAB81fA0C6971208e83fa7872994beE5;
     address constant TM = 0xE47c80e8c23f6B4A1aE41c34837a0599D5D16bb0;
     address constant MUSD = 0x118917a40FAF1CD7a13dB0Ef56C86De7973Ac503;
+    address constant PF = 0x86bCF0841622a5dAC14A313a15f96A95421b9366;
 
     function run() external {
         require(block.chainid == 31611, "preflight: not Mezo testnet");
@@ -29,7 +30,7 @@ contract Deploy is Script {
         vm.startBroadcast(pk);
         BallastRouter router = new BallastRouter(predFactory, MUSD);
         BallastAccountNFT nft = new BallastAccountNFT(predFactory);
-        BallastFactory factory = new BallastFactory(address(nft), address(router), BO, TM, MUSD);
+        BallastFactory factory = new BallastFactory(address(nft), address(router), BO, TM, MUSD, PF);
         vm.stopBroadcast();
 
         require(address(factory) == predFactory, "factory address mismatch");
