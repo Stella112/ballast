@@ -71,7 +71,9 @@
     "MorphoMarketId": "0xffa1cd17869e9f195a2c9f6b218a5f8c3d90251640616b6da62604db0c482573",
     "BallastHedgeFactory": "0xE6bf4f9C911a5A4dD17062d25A1eCd0DdaA5C39E",
     "BallastHedge": "0x26df16A52A19C49d7b546c7E2B51b84A12d3aE07",
-    "BallastBridgeReceiver": "0xA28f9D5b2461623492d88a29400A62af627F18D9"
+    "BallastBridgeReceiver": "0xA28f9D5b2461623492d88a29400A62af627F18D9",
+    "BridgedUSDC": "0x48AE9354c560F2D4f26e41760e67fdd3f2E8C4F0",
+    "UsdcMusdPool": "0x55a317f5DDC12C7F52922775f56930e5036c0047"
   },
   "baseSepolia": {
     "_provenance": "Verified 2026-11-14: eth_chainId 84532; Wormhole core/token bridge from wormhole.com/docs/reference/contract-addresses and explorer-verified BridgeImplementation; chainId() reads; Mezo bridge bridgeContracts(10004) == this token bridge; USDC symbol/decimals reads.",

@@ -16,5 +16,5 @@ Deadline: Mezo Buildathon Wave 2, **2026-11-15** (exact cutoff/timezone: verify 
 | P0-E frontend | **DEPLOYED**: all routes build; tested in browser without wallet, mobile 375px OK | live at https://ballast-tawny.vercel.app (verified 2026-11-14); repo published at https://github.com/Stella112/ballast |
 | Docs / submission copy | IN PROGRESS: owner's description in docs/PROJECT_DESCRIPTION.md with evidence table; README, DEMO, ARCHITECTURE, SECURITY, AKINDO_SUBMISSION updated | video, deck, team |
 | Existing-loan signed repayment (BallastRepaymentAdapter) | **VERIFIED**: deployed + source-verified, 8 fork tests, 2 live payments (docs/TEST_EVIDENCE.md) | wallet-extension run of /app/existing |
-| P1 Base Sepolia path | **BLOCKED**: Mezo documents MUSD NTT for mainnet only; no testnet route (docs/VERIFICATION.md) | shown as planned in app |
-| P1 Morpho hedge | **BLOCKED → SIMULATION**: no Morpho market on Mezo testnet; /app/hedge is a labelled simulator | — |
+| P1 Base Sepolia path | **VERIFIED LIVE**: Wormhole Token Bridge Base Sepolia → Mezo, settle tx 0x92ad…137f (docs/TEST_EVIDENCE.md); pool seeded by Ballast | docs / browser-wallet run |
+| P1 Morpho hedge | **VERIFIED LIVE** on Ballast-deployed Morpho Blue (open/close/sendToAccount txs) | docs / browser-wallet run |

@@ -20,9 +20,9 @@ export default function InvoicesPage() {
         Each invoice can be paid once, for the exact amount, before it expires. Payments are split by your Payback policy at the moment of payment.
       </p>
       <AccountGate purpose="create invoices">{(s) => <Create s={s} />}</AccountGate>
-      <Notice tone="neutral" title="Pay from Base (USDC) — planned, not available">
-        Customers pay in MUSD on Mezo today. A Base → Mezo route needs a testnet MUSD bridge; Mezo documents its Wormhole NTT bridge contracts for mainnet only, with no Base Sepolia or Mezo testnet deployment (checked 2026-11-14).
-        Ballast will not present a simulated or self-funded bridge as a real transfer.
+      <Notice tone="neutral" title="Customers can also pay with USDC on Base Sepolia">
+        Your invoice link offers both: MUSD on Mezo, or USDC on Base Sepolia through the Wormhole token bridge. Bridged USDC is swapped to MUSD in a Mezo pool seeded by the Ballast team,
+        then split and repaid by your policy exactly like an MUSD payment, in one Mezo transaction. Bridge settlement can take several minutes.
       </Notice>
       <p className="text-sm text-muted">Is your Mezo loan held by your own wallet instead of a Ballast account? Use <a className="text-accent-strong underline" href="/app/existing">Existing loan</a>.</p>
     </div>

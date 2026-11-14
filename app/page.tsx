@@ -33,8 +33,8 @@ export default function Home() {
           <li>Testnet only. Contracts are unaudited.</li>
           <li>Redemptions can take collateral from healthy loans; a better queue position is not a guarantee.</li>
           <li>Liquidation is possible if BTC falls far enough. Interest accrues on your debt.</li>
-          <li>The hedge reserve is uninvested MUSD. No hedge is opened (see Hedge).</li>
-          <li>Paying from other chains (Base) is not available.</li>
+          <li>The hedge reserve is uninvested MUSD until you open a hedge yourself. Hedges run on a Morpho Blue market deployed and funded by the Ballast team; they can lose money and be liquidated.</li>
+          <li>Paying with USDC from Base Sepolia uses the real Wormhole token bridge (can take several minutes to settle) and a USDC/MUSD pool on Mezo seeded by the Ballast team.</li>
         </ul>
       </Card>
     </div>

@@ -270,6 +270,7 @@ base-bridge) # base-bridge <USDC>: payer moves USDC from Base Sepolia to its own
   sendb PAYER_PRIVATE_KEY "$BTB" "transferTokens(address,uint256,uint16,bytes32,uint256,uint32)" "$BUSDC" "$AMT" 50 "0x000000000000000000000000${PAYER_ADDRESS:2}" 0 "$RANDOM" --value "$FEE"
   SEQ=$(wh_sequence); log "  transfer sequence=$SEQ; waiting for guardians"
   V=$(wh_vaa "$SEQ") || { log "VAA not available yet for seq $SEQ"; exit 1; }
+  for i in $(seq 1 120); do [ "$(cast call "$MTB" "wrappedAsset(uint16,bytes32)(address)" 10004 "0x000000000000000000000000${BUSDC:2}" --rpc-url "$R")" != "0x0000000000000000000000000000000000000000" ] && break; sleep 10; done
   send PAYER_PRIVATE_KEY "$MTB" "completeTransfer(bytes)" "$V"
   log "  payer wrapped USDC on Mezo=$(cast call "$(ballast BridgedUSDC)" "balanceOf(address)(uint256)" "$PAYER_ADDRESS" --rpc-url "$R")"
   ;;
@@ -300,8 +301,12 @@ pay-base-invoice) # pay-base-invoice <MUSD>: merchant (deployer) signs a Ballast
 "message":{"tokenId":$T,"invoiceId":"$IID","amount":"$AMT","expiry":$EXPIRY}}
 EOF2
   SIG=$(cast wallet sign --data --from-file evidence/invoice.json --private-key "$DEPLOYER_PRIVATE_KEY")
-  USDC_AMT=$(python -c "print(($AMT//10**12+1)*10100//10000+1)")
-  Q=$(quote "$USDC_AMT" "$W" "$MUSD" true)
+  for BUMP in 30 100 300 1000; do # smallest USDC amount the pool turns into >= invoice amount (same as the app)
+    USDC_AMT=$(python -c "print(($AMT//10**12+1)*(10000+$BUMP)//10000+1)")
+    Q=$(quote "$USDC_AMT" "$W" "$MUSD" true)
+    [ "$(python -c "print(int($Q>=$AMT))")" = "1" ] && break
+  done
+  [ "$(python -c "print(int($Q>=$AMT))")" = "1" ] || { log "pool too shallow: $USDC_AMT USDC -> $Q MUSD < $AMT"; exit 1; }
   log "BASE-INVOICE tokenId=$T invoiceId=$IID amount=$AMT expiry=$EXPIRY usdcSent=$USDC_AMT poolQuoteMUSD=$Q receiver=$RCV"
   PAYLOAD=$(cast call "$RCV" "encodePayload((uint8,(uint256,bytes32,uint256,uint256),bytes,address,uint256))(bytes)" "(1,($T,$IID,$AMT,$EXPIRY),$SIG,$PAYER_ADDRESS,$AMT)" --rpc-url "$R")
   FEE=$(cast call "$BCORE" "messageFee()(uint256)" --rpc-url "$BR" | cut -d' ' -f1)
