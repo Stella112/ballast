@@ -61,3 +61,10 @@ Morpho has no deployment on Mezo testnet. With the owner's approval Ballast depl
 
 Market: loan = Mezo BTC ERC-20 `0x7b7C000000000000000000000000000000000000`, collateral = MUSD, oracle = BallastMezoOracle, irm = AdaptiveCurveIrm, LLTV 0.86. Market id `0xffa1cd17869e9f195a2c9f6b218a5f8c3d90251640616b6da62604db0c482573`. Setup txs: enableIrm [`0x6766d84c…`](https://explorer.test.mezo.org/tx/0x6766d84c1008b1d6ec8a863394a573e35b8f5a9d2bc507e43c71ab5f8e4f61ab), enableLltv [`0x2d1c0074…`](https://explorer.test.mezo.org/tx/0x2d1c00743e4444b5565072f8276ced3cf5daa7d82aa0f7a6f9e7cfe2f1fbfd35), createMarket [`0x41162dee…`](https://explorer.test.mezo.org/tx/0x41162dee34e7a7b9f71664134451cef53bc56c8d6ee60c9dcf110eb3cf869f68); liquidity: deployer supplied 0.0012 BTC [`0x423f7c30…`](https://explorer.test.mezo.org/tx/0x423f7c30c2d5874046032116f27612f99908f6d560e0abb72d8d5c632ae4bcc3).
 All of the above are source-verified on Blockscout (Morpho from the upstream source).
+
+## Base Sepolia (chain 84532)
+| Contract | Address | Deploy tx |
+|---|---|---|
+| BallastBaseGateway (source verified on Blockscout) | [`0x8Da29e84f88F35f87549b5d8a8EF54e4aD1c298C`](https://base-sepolia.blockscout.com/address/0x8Da29e84f88F35f87549b5d8a8EF54e4aD1c298C) | [`0x0237d7ee…0698`](https://base-sepolia.blockscout.com/tx/0x0237d7eeac2bbed0d8d19a90eb8cd259a1240066523641394316e2801d360698) |
+
+Constructor: Base Sepolia MUSD `0x5609…AEA5`, MUSD NttManager `0x6590…D85F`, Mezo Wormhole chain id 50. No owner, holds nothing between transactions. Deployed by the payer demo wallet.

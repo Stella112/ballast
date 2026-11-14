@@ -495,3 +495,9 @@ Sensitive values saved to: C:/mezo/cache\Deploy.s.sol\31611\run-latest.json
 [2026-11-14T22:53:34Z] SUBMITTED setPolicy(uint16,uint16,bool,address,uint256) hash=0xc9c0c46839e9a12a93322f94d5d03410ca56fd92d451f1af1e9613e8e7371d8c
 [2026-11-14T22:53:41Z] TX setPolicy(uint16,uint16,bool,address,uint256) status=1 block=16784336 hash=0xc9c0c46839e9a12a93322f94d5d03410ca56fd92d451f1af1e9613e8e7371d8c https://explorer.test.mezo.org/tx/0xc9c0c46839e9a12a93322f94d5d03410ca56fd92d451f1af1e9613e8e7371d8c
 [2026-11-14T22:53:46Z]   policy=(2000, 500, false, 0x0000000000000000000000000000000000000000, 0)
+[2026-11-14T23:33:00Z] SUBMITTED approve(address,uint256) hash=0xdcd6d15af8c9873466b29edf9dbce14b871e8b64d258e6a39568fedd45d79cca
+[2026-11-14T23:33:06Z] TX approve(address,uint256) status=1 block=16784905 hash=0xdcd6d15af8c9873466b29edf9dbce14b871e8b64d258e6a39568fedd45d79cca https://explorer.test.mezo.org/tx/0xdcd6d15af8c9873466b29edf9dbce14b871e8b64d258e6a39568fedd45d79cca
+[2026-11-14T23:33:13Z] SUBMITTED transfer(uint256,uint16,bytes32) hash=0x7455fef58ba587c270c635432b263b6792e64a2ea15fe9c2c315c1513a0a6c25
+[2026-11-14T23:33:18Z] TX transfer(uint256,uint16,bytes32) status=1 block=16784908 hash=0x7455fef58ba587c270c635432b263b6792e64a2ea15fe9c2c315c1513a0a6c25 https://explorer.test.mezo.org/tx/0x7455fef58ba587c270c635432b263b6792e64a2ea15fe9c2c315c1513a0a6c25
+[2026-11-14T23:33:18Z]   NTT Mezo->Base sequence=90 (emitter Mezo MUSD transceiver 0x0E628A1C34c92F0aA85aF998814Ce4f03cAA5913); waiting for guardians
+[2026-11-14T23:42:58Z] DEPLOY [base] BallastBaseGateway 0x8Da29e84f88F35f87549b5d8a8EF54e4aD1c298C creationTx=0x0237d7eeac2bbed0d8d19a90eb8cd259a1240066523641394316e2801d360698 codeBytes=2518 https://base-sepolia.blockscout.com/address/0x8Da29e84f88F35f87549b5d8a8EF54e4aD1c298C (script output parse failed; address recovered from deployer nonce 7 and confirmed by reads)

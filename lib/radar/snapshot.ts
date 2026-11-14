@@ -41,6 +41,7 @@ export type RadarSnapshot = {
     eligibleRank?: number; // 1-based among ICR >= MCR troves, counted from tail
     eligibleCount: number;
     debtAheadEligible: bigint;
+    redeemableAhead: bigint;
     coll: bigint;
     principal: bigint;
     interest: bigint;
@@ -166,9 +167,15 @@ async function describeMe(client: PublicClient, account: Address, snap: RadarSna
   const inList = pos >= 0;
   let eligibleRank: number | undefined;
   let debtAheadEligible = 0n;
+  // What a redemption can actually take from the loans ahead: Mezo redeems at most (debt - 200 MUSD gas deposit)
+  // per loan (TroveManager._redeemCollateralFromTrove, musd@da7888a). A redemption no larger than this is absorbed before reaching us.
+  let redeemableAhead = 0n;
   if (inList) {
     let r = 0;
-    for (let i = 0; i <= pos; i++) if (snap.list[i].eligible) { r++; if (i < pos) debtAheadEligible += snap.list[i].debt; }
+    for (let i = 0; i <= pos; i++) if (snap.list[i].eligible) {
+      r++;
+      if (i < pos) { debtAheadEligible += snap.list[i].debt; redeemableAhead += snap.list[i].debt > snap.gasComp ? snap.list[i].debt - snap.gasComp : 0n; }
+    }
     eligibleRank = snap.list[pos].eligible ? r : undefined;
   }
   const myNicr = nicr(coll, principal);
@@ -210,6 +217,7 @@ async function describeMe(client: PublicClient, account: Address, snap: RadarSna
     eligibleRank: ok ? eligibleRank : undefined,
     eligibleCount: snap.list.filter((r) => r.eligible).length,
     debtAheadEligible,
+    redeemableAhead,
     coll, principal, interest, totalDebt: fullDebt,
     nicr: myNicr,
     icr: icr(coll, fullDebt, snap.price),

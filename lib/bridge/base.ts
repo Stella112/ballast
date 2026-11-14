@@ -37,8 +37,8 @@ export function encodeBridgePayload(p: {
 export const addressToBytes32 = (a: Address): Hex => pad(a, { size: 32 });
 
 /** Fetch the guardian-signed VAA for a Base Sepolia token-bridge message from Wormholescan (testnet). null = not yet. */
-export async function fetchVaa(sequence: bigint): Promise<Hex | null> {
-  const emitter = addressToBytes32(cfg.baseSepolia.WormholeTokenBridge).slice(2).toLowerCase();
+export async function fetchVaa(sequence: bigint, emitterAddress: Address = cfg.baseSepolia.WormholeTokenBridge): Promise<Hex | null> {
+  const emitter = addressToBytes32(emitterAddress).slice(2).toLowerCase();
   const url = `${cfg.baseSepolia.wormholescanApi}/api/v1/vaas/${cfg.baseSepolia.WormholeChainId}/${emitter}/${sequence.toString()}`;
   const r = await fetch(url, { cache: "no-store" });
   if (r.status === 404) return null;

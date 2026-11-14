@@ -9,6 +9,7 @@ import { BallastAccountAbi, BallastFactoryAbi, BallastRouterAbi, MUSDAbi, Sorted
 import { cfg } from "@/lib/config";
 import { computeHints } from "@/lib/mezo/hints";
 import { principalAfterRepay } from "@/lib/radar/math";
+import { PayMusdFromBase } from "@/components/pay-base-musd";
 
 /** Open pay link for one Ballast account: anyone can send any amount of MUSD; the account's policy splits it. */
 export default function PayAccountPage({ params }: { params: Promise<{ id: string }> }) {
@@ -115,6 +116,7 @@ function Inner({ accountId }: { accountId: bigint }) {
           <div className="mt-3 space-y-2"><TxStatus state={approveTx.state} /><TxStatus state={payTx.state} /></div>
         </Card>
       </RequireMezo>
+      {refOk && <PayMusdFromBase acct={acct!} amount={amt} reference={reference} />}
       {result && (
         <Card title="Receipt (from the router's Payment event)">
           <div className="grid grid-cols-2 gap-4 md:grid-cols-3">

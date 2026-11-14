@@ -2,7 +2,7 @@
 // Mezo ABIs come from abi/mezo/<C>.json (fetched from the testnet explorer; see docs/VERIFICATION.md),
 // filtered to the functions the app uses. Re-run after `forge build`.
 import fs from "node:fs";
-const ballast = ["BallastFactory", "BallastAccount", "BallastAccountNFT", "BallastRouter", "BallastRepaymentAdapter", "BallastHedge", "BallastHedgeFactory", "BallastBridgeReceiver"];
+const ballast = ["BallastFactory", "BallastAccount", "BallastAccountNFT", "BallastRouter", "BallastRepaymentAdapter", "BallastHedge", "BallastHedgeFactory", "BallastBridgeReceiver", "BallastBaseGateway"];
 const artifactFile = { BallastHedgeFactory: "BallastHedge.sol" };
 const mezo = {
   TroveManager: ["getTroveStatus","getTroveDebt","getTroveColl","getTrovePrincipal","getTroveInterestOwed","getNominalICR","getCurrentICR","getEntireDebtAndColl","getTCR","checkRecoveryMode","Troves","getTroveOwnersCount","getTroveFromTroveOwnersArray","MCR"],

@@ -134,3 +134,10 @@ Fresh live transactions (all status 1):
 Hedge open/close was last run live at 22:03–22:05 UTC (see the hedge section); not repeated (each run costs ~0.8 MUSD in swap fees).
 
 Fix from this check: when an invoice is larger than the USDC/MUSD pool can convert, the Base card said "Quoting…" forever; it now explains that the pool is too small (anything costing more than 10% extra is refused; measured limit about 4.5 MUSD) and to pay in MUSD on Mezo or use a smaller invoice. Checked on the live site with 5 and 10 MUSD invoices. Radar on the live site at block 16784487: 338 loans, all checks true, account #198 from the tail.
+
+## Pay with MUSD from Base over Wormhole NTT (2026-11-14, from 23:20 UTC)
+- `BASE_SEPOLIA_RPC_URL=https://sepolia.base.org forge test --match-contract BallastBaseGatewayForkTest` → **4 passed** on a fork of live Base Sepolia: `pay` burns the payer's MUSD through the real NTT manager (total supply −5 MUSD), gateway left holding nothing and no standing approval, unused native fee refunded, zero amount / zero account / dust / missing allowance rejected.
+- Gateway deployed and source-verified on Base Sepolia (docs/DEPLOYMENTS.md).
+- Mezo → Base, to give the demo payer MUSD on Base: `scripts/live.sh ntt-to-base 30` → [approve](https://explorer.test.mezo.org/tx/0xdcd6d15af8c9873466b29edf9dbce14b871e8b64d258e6a39568fedd45d79cca), [transfer](https://explorer.test.mezo.org/tx/0x7455fef58ba587c270c635432b263b6792e64a2ea15fe9c2c315c1513a0a6c25) (block 16784908, status 1, bridge sequence 90). **Not delivered yet:** no guardian signature as of the last check. The 30 MUSD is locked in the Mezo NTT manager until then.
+- **Not yet run:** gateway `pay` on Base → delivery on Mezo → keeper `processIncome`. Commands are ready: `base-musd-pay <MUSD> <ref>`, then `ntt-deliver-mezo <sequence>`.
+- Radar: "MUSD ahead of you" now sums `debt − 200` over eligible loans ahead (Mezo's per-loan redeemable amount).

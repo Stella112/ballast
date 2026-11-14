@@ -6,7 +6,7 @@ export const cfg = deployments as unknown as {
   chainId: number;
   rpcUrl: string;
   explorer: string;
-  mezo: Record<"MUSD" | "BorrowerOperations" | "BorrowerOperationsSignatures" | "TroveManager" | "SortedTroves" | "HintHelpers" | "PriceFeed" | "WormholeCore" | "WormholeTokenBridge" | "PoolsRouter" | "PoolFactory" | "MusdBtcPool", Address> & { WormholeChainId: number };
+  mezo: Record<"MUSD" | "BorrowerOperations" | "BorrowerOperationsSignatures" | "TroveManager" | "SortedTroves" | "HintHelpers" | "PriceFeed" | "WormholeCore" | "WormholeTokenBridge" | "PoolsRouter" | "PoolFactory" | "MusdBtcPool", Address> & { WormholeChainId: number; MusdNttManager?: Address; MusdNttTransceiver?: Address };
   ballast: {
     BallastRouter: Address;
     BallastAccountNFT: Address;
@@ -21,6 +21,7 @@ export const cfg = deployments as unknown as {
     BallastBridgeReceiver?: Address;
     BridgedUSDC?: Address;
     UsdcMusdPool?: Address;
+    BallastBaseGateway?: Address; // on Base Sepolia
     BallastAccount?: Address;
     tokenId?: number;
   };
@@ -33,6 +34,9 @@ export const cfg = deployments as unknown as {
     WormholeTokenBridge: Address;
     WormholeChainId: number;
     wormholescanApi: string;
+    MUSD?: Address;
+    MusdNttManager?: Address;
+    MusdNttTransceiver?: Address;
   };
 };
 

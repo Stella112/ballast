@@ -109,6 +109,31 @@ sendb() { # sendb <pkvar> <to> <sig> [args...] on Base Sepolia (chain check), lo
   echo "$out" > evidence/last-base-receipt.json
 }
 
+# ---- MUSD over Wormhole NTT (Mezo testnet <-> Base Sepolia), canonical managers verified on-chain ----
+MNTT=$(j "d['mezo']['MusdNttManager']"); MXCV=$(j "d['mezo']['MusdNttTransceiver']"); MCORE=$(j "d['mezo']['WormholeCore']")
+BMUSD=$(j "d['baseSepolia']['MUSD']"); BNTT=$(j "d['baseSepolia']['MusdNttManager']"); BXCV=$(j "d['baseSepolia']['MusdNttTransceiver']")
+b32() { python -c "print('0x'+'0'*24+'$1'[2:].lower())"; }
+ntt_seq() { # ntt_seq <receipt.json> <wormhole core> <emitter>: sequence of the transceiver's LogMessagePublished
+  python -c 'import json,sys
+r=json.load(open(sys.argv[1])); core,em=sys.argv[2].lower(),sys.argv[3].lower()
+T="0x6eb224fb001ed210e379b335e35efe88672a8ce935d981a6896b27ffdf52a3b2"
+for l in r["logs"]:
+    if l["address"].lower()==core and l["topics"][0].lower()==T and l["topics"][1][-40:].lower()==em[2:]:
+        print(int(l["data"][2:66],16)); break' "$1" "$2" "$3"
+}
+ntt_vaa() { # ntt_vaa <wormhole chain> <emitter> <sequence>: poll Wormholescan for the guardian-signed VAA; prints hex
+  local em; em=$(python -c "print('0'*24+'$2'[2:].lower())"); local i v
+  for i in $(seq 1 240); do
+    v=$(curl -s "$WSCAN/api/v1/vaas/$1/$em/$3" | python -c 'import json,sys,base64
+try:
+  d=json.load(sys.stdin)["data"]["vaa"]; print("0x"+base64.b64decode(d).hex())
+except Exception: pass')
+    if [ -n "$v" ]; then echo "$v"; return 0; fi
+    sleep 15
+  done
+  return 1
+}
+
 wh_sequence() { # sequence of the token bridge's LogMessagePublished in the last Base receipt
   python - "$BCORE" "$BTB" <<'EOF'
 import json,sys
@@ -328,6 +353,45 @@ settle-base) # settle-base <sequence>: anyone (payer here) submits the VAA to Ba
   send PAYER_PRIVATE_KEY "$RCV" "settle(bytes,address,address)" "$V" "$UP" "$LO" --gas-limit 3500000
   log "  payout MUSD after=$(cast call "$MUSD" "balanceOf(address)(uint256)" "$(cast call "$A" "payoutAddress()(address)" --rpc-url "$R")" --rpc-url "$R") receiver MUSD=$(cast call "$MUSD" "balanceOf(address)(uint256)" "$RCV" --rpc-url "$R")"
   state
+  ;;
+ntt-to-base) # ntt-to-base <MUSD>: payer bridges its own MUSD from Mezo to its own address on Base Sepolia (canonical NTT)
+  AMT=$(cast to-wei "$1")
+  send PAYER_PRIVATE_KEY "$MUSD" "approve(address,uint256)" "$MNTT" "$AMT"
+  send PAYER_PRIVATE_KEY "$MNTT" "transfer(uint256,uint16,bytes32)" "$AMT" 10004 "$(b32 "$PAYER_ADDRESS")"
+  SEQ=$(ntt_seq evidence/last-receipt.json "$MCORE" "$MXCV"); echo "$SEQ" > evidence/last-ntt-mezo-seq.txt
+  log "  NTT Mezo->Base sequence=$SEQ (emitter Mezo MUSD transceiver $MXCV); waiting for guardians"
+  ;;
+ntt-redeem-base) # ntt-redeem-base <sequence>: anyone (payer) delivers a Mezo->Base NTT message on Base Sepolia
+  V=$(ntt_vaa 50 "$MXCV" "$1") || { log "VAA not available"; exit 1; }
+  log "NTT-REDEEM-BASE seq=$1 payer Base MUSD before=$(cast call "$BMUSD" "balanceOf(address)(uint256)" "$PAYER_ADDRESS" --rpc-url "$BR")"
+  sendb PAYER_PRIVATE_KEY "$BXCV" "receiveMessage(bytes)" "$V"
+  log "  payer Base MUSD after=$(cast call "$BMUSD" "balanceOf(address)(uint256)" "$PAYER_ADDRESS" --rpc-url "$BR")"
+  ;;
+deploy-base-gateway) # BallastBaseGateway on Base Sepolia (payer wallet holds Base ETH)
+  [ -z "$(ballast BallastBaseGateway)" ] || { echo "already deployed"; exit 1; }
+  [ "$(cast chain-id --rpc-url "$BR")" = "84532" ] || { echo "refusing: Base RPC is not 84532"; exit 1; }
+  OUT=$(forge create contracts/src/BallastBaseGateway.sol:BallastBaseGateway --rpc-url "$BR" --private-key "$PAYER_PRIVATE_KEY" --broadcast --json --constructor-args "$BMUSD" "$BNTT" 50 | tail -1)
+  G=$(echo "$OUT" | python -c 'import json,sys;print(json.load(sys.stdin)["deployedTo"])'); H=$(echo "$OUT" | python -c 'import json,sys;print(json.load(sys.stdin)["transactionHash"])')
+  cfgset BallastBaseGateway "$G"
+  log "DEPLOY [base] BallastBaseGateway $G tx=$H codeBytes=$(( ($(cast code "$G" --rpc-url "$BR" | wc -c) - 3) / 2 )) $BEXP/address/$G"
+  ;;
+base-musd-pay) # base-musd-pay <MUSD> <reference>: payer pays the Ballast account with MUSD on Base Sepolia through the gateway (NTT)
+  AMT=$(cast to-wei "$1"); G=$(ballast BallastBaseGateway); A=$(ballast BallastAccount); REF=$(cast format-bytes32-string "$2")
+  log "BASE-MUSD-PAY amount=$AMT reference=$2 account(recipient on Mezo)=$A gateway=$G"
+  sendb PAYER_PRIVATE_KEY "$BMUSD" "approve(address,uint256)" "$G" "$AMT"
+  sendb PAYER_PRIVATE_KEY "$G" "pay(address,uint256,bytes32)" "$A" "$AMT" "$REF"
+  cp evidence/last-base-receipt.json evidence/last-base-musd-pay-receipt.json
+  SEQ=$(ntt_seq evidence/last-base-receipt.json "$BCORE" "$BXCV"); echo "$SEQ" > evidence/last-ntt-base-seq.txt
+  log "  NTT Base->Mezo sequence=$SEQ (emitter Base MUSD transceiver $BXCV); waiting for guardians"
+  ;;
+ntt-deliver-mezo) # ntt-deliver-mezo <sequence>: keeper (payer, not the owner) delivers the NTT message on Mezo, then applies the policy
+  A=$(ballast BallastAccount)
+  V=$(ntt_vaa 10004 "$BXCV" "$1") || { log "VAA not available"; exit 1; }
+  log "NTT-DELIVER-MEZO seq=$1 account MUSD before=$(cast call "$MUSD" "balanceOf(address)(uint256)" "$A" --rpc-url "$R") pendingIncome=$(cast call "$A" "pendingIncome()(uint256)" --rpc-url "$R")"
+  send PAYER_PRIVATE_KEY "$MXCV" "receiveMessage(bytes)" "$V" --gas-limit 1500000
+  cp evidence/last-receipt.json evidence/last-ntt-deliver-receipt.json
+  log "  account MUSD after=$(cast call "$MUSD" "balanceOf(address)(uint256)" "$A" --rpc-url "$R") pendingIncome=$(cast call "$A" "pendingIncome()(uint256)" --rpc-url "$R")"
+  "$0" keeper 0
   ;;
 v1-close) # one-time migration: close the v1 demo trove, return BTC + MUSD to the deployer, archive v1 addresses
   V1A=$(j "d['ballastV1']['BallastAccount']")

@@ -22,7 +22,7 @@ type Radar = {
   verified: Record<string, boolean>;
   window: Row[];
   me?: {
-    inList: boolean; rawPosFromTail?: number; eligibleRank?: number; eligibleCount: number; debtAheadEligible: string;
+    inList: boolean; rawPosFromTail?: number; eligibleRank?: number; eligibleCount: number; debtAheadEligible: string; redeemableAhead: string;
     nicr: string; icr: string; liquidationPrice: string; maxRepayable: string; totalDebt: string; principal: string; interest: string;
     targets: { pass: number; target?: string; targetNicr?: string; quote?: Quote }[];
     scenarios: Scenario[];
@@ -95,7 +95,7 @@ function RadarView({ s, refetchAccount }: { s: AccountState; refetchAccount: () 
           <Stat label="Block" value={d.blockNumber} sub={`${ageS}s old · fetched ${new Date(d.queriedAt).toLocaleTimeString()}`} />
           <Stat label="Your position from tail" value={allOk && me.rawPosFromTail ? `#${me.rawPosFromTail} of ${d.size}` : "—"} sub="#1 is redeemed first" />
           <Stat label="Redemption-eligible order" value={allOk && me.eligibleRank ? `#${me.eligibleRank} of ${me.eligibleCount}` : "—"} sub="Troves ≥110% ICR" />
-          <Stat label="Debt of eligible troves ahead" value={`${fmt(me.debtAheadEligible, 18, 0)} MUSD`} sub="Context, not a guarantee" />
+          <Stat label="MUSD ahead of you" value={`${fmt(me.redeemableAhead, 18, 0)} MUSD`} sub="Redeemable from loans ahead: a redemption up to this size is absorbed before yours (at this block)" />
           <Stat label="Your NICR" value={me.nicr} sub="coll × 1e20 ÷ principal" />
           <Stat label="Your ICR" value={pct(me.icr)} sub={`at ${fmt(d.price)} MUSD/BTC`} />
           <Stat label="Liquidation price (est.)" value={`${fmt(me.liquidationPrice)} MUSD`} sub="ICR < 110% below this" />

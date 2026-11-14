@@ -84,3 +84,18 @@ Foundry's EVM does not implement the oracle precompile (`EvmError: NotActivated`
 - Mezo Pools testnet (mezo.org/docs/developers/features/mezo-pools): Router `0x9a1ff7FE3a0F69959A3fBa1F1e5ee18e1A9CD7E9` (verified, Aerodrome-style `Route{from,to,stable,factory}`), PoolFactory `0x4947243CC818b627A5D06d14C4eCe7398A23Ce1A` (not paused), MUSD/BTC pool `0xd16A5Df82120ED8D626a1a15232bFcE2366d6AA9` (reserves ≈ 102.25M MUSD / 1,307 BTC at 2026-11-14). No pool for Wormhole-bridged USDC existed.
 - Mezo BTC ERC-20 `0x7b7C000000000000000000000000000000000000` ("BTCCaller", verified): symbol BTC, 18 decimals, `balanceOf` = native balance; implemented over a chain-native precompile (Foundry fork: NotActivated). Live `approve`/`transferFrom` into Morpho worked (supply tx above).
 - Morpho: no Mezo-testnet deployment (unchanged). Ballast deployed upstream Morpho Blue v1.0.0 (`55d2d99`) + AdaptiveCurveIrm v1.0.0 (`a7d9cce`) with owner approval; see DEPLOYMENTS.md.
+
+## Correction (2026-11-14, 23:20 UTC): MUSD Wormhole NTT exists on testnet
+The "BLOCKED: no verified route" finding above relied on Mezo's docs, which list the MUSD NTT contracts for mainnet only. Live chain state shows a testnet deployment (found via the Mezo explorer: `NttManagerWithExecutor` `0x484b5593BbB90383f94FB299470F09427cf6cfE2` moving MUSD).
+
+| | Mezo testnet (Wormhole chain 50) | Base Sepolia (Wormhole chain 10004) |
+|---|---|---|
+| NttManager (proxy) | `0x20888B20e2F5F405d44261dA96467a1b1acE15be` | `0x6590DFF6abEd7C077839E8227A4f12Ec90E6D85F` |
+| `token()` | `0x118917a40FAF1CD7a13dB0Ef56C86De7973Ac503` (testnet MUSD) | `0x560985f804De8187E8FBA94F7127Bc4c0e54AEA5` ("Mezo USD", MUSD, 18 decimals, supply 4,574.27) |
+| `getMode()` | 0 (locking) | 1 (burning) |
+| `getPeer(other chain)` | the Base manager, 18 decimals | the Mezo manager, 18 decimals |
+| Transceiver | `0x0E628A1C34c92F0aA85aF998814Ce4f03cAA5913` | `0x2ada2d985Ce69b467d2D8372494Df021BEDfdbf2` (peers mutual) |
+| `isPaused()` / threshold | false / 1 | false / 1 |
+
+`NTT_MANAGER_VERSION` = 2.0.0. Wormhole `messageFee()` = 0 on both chains. Implementations are **not** source-verified on the explorers (ASSUMED: upstream `wormhole-foundation/native-token-transfers` v2.0.0). `transfer(uint256,uint16,bytes32)` VERIFIED by live simulation and a live transfer ([0x7455fef5…6c25](https://explorer.test.mezo.org/tx/0x7455fef58ba587c270c635432b263b6792e64a2ea15fe9c2c315c1513a0a6c25), block 16784908, sequence 90, consistency level 202). `quoteDeliveryPrice` reverts with an array-bounds panic for every instruction encoding tried, so it is not used. `receiveMessage(bytes)` on the transceiver: UNVERIFIED until a guardian-signed message exists.
+Guardian status at 23:40 UTC: Wormholescan has sequences 86–88 from the Mezo transceiver (each signed about 5 s after emission) but neither 89 (19:13 UTC, another user) nor 90 (ours); the guardian heartbeat shows chain 50 at head with 9 errors. No Levada repository was found on GitHub.
