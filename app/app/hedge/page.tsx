@@ -27,7 +27,51 @@ export default function HedgePage() {
         A short loses money if BTC rises, costs interest and swap fees, and can be liquidated even while the BTC securing your Mezo loan gains value. Testnet, unaudited.
       </Notice>
       {!B.Morpho || !B.MorphoMarketId || !B.BallastHedgeFactory ? <Notice tone="bad">Hedge contracts are not configured.</Notice> : <><Market /><AccountGate purpose="hedge">{(s) => <HedgeInner s={s} />}</AccountGate></>}
+      <SimulatedDrop />
     </div>
+  );
+}
+
+/** A BTC price drop cannot be caused on testnet, so this card is arithmetic only. Opening and closing above are real. */
+function SimulatedDrop() {
+  const k = useMarket();
+  const [btc, setBtc] = useState("0.0005");
+  const [coll, setColl] = useState("80");
+  const entry = k.poolPrice ? Number(k.poolPrice) / 1e18 : 0; // MUSD per BTC received when selling
+  const q = Number(btc) || 0, c = Number(coll) || 0;
+  const feePct = 0.6; // two pool swaps, assumed
+  const rows = [10, 20, 30].map((d) => {
+    const exit = entry * (1 - d / 100);
+    const pnl = q * entry - q * exit - (q * entry * feePct) / 100;
+    return { d, exit, pnl };
+  });
+  const liq = q > 0 ? (0.86 * c) / q : 0;
+  const n = (x: number, dp = 2) => (Number.isFinite(x) ? x.toLocaleString(undefined, { minimumFractionDigits: dp, maximumFractionDigits: dp }) : "—");
+  return (
+    <Card title="What a BTC drop would do" right={<Badge tone="sim">SIMULATED — not a real price move</Badge>}>
+      <p className="mb-4 max-w-prose text-sm text-muted">
+        Nobody can make BTC fall on a testnet, so this part is a calculation, not a transaction. It shows what closing a short of this size would pay toward your loan if BTC fell after you opened it.
+      </p>
+      <div className="grid gap-4 sm:grid-cols-3">
+        <Field label="BTC borrowed and sold"><input className={inputCls} inputMode="decimal" value={btc} onChange={(e) => setBtc(e.target.value)} /></Field>
+        <Field label="MUSD collateral posted"><input className={inputCls} inputMode="decimal" value={coll} onChange={(e) => setColl(e.target.value)} /></Field>
+        <Stat label="Sale price today (pool)" value={`${n(entry, 0)} MUSD/BTC`} sub={`you'd hold ${n(q * entry)} MUSD`} />
+      </div>
+      <div className="mt-4 overflow-x-auto">
+        <table className="w-full min-w-[480px] text-sm">
+          <thead className="text-left text-xs uppercase text-muted"><tr><th className="py-2">BTC move</th><th className="text-right">Buy-back price</th><th className="text-right">Simulated gain toward the loan</th></tr></thead>
+          <tbody className="num">
+            {rows.map((r) => (
+              <tr key={r.d} className="border-t border-border"><td className="py-2">−{r.d}%</td><td className="text-right">{n(r.exit, 0)}</td><td className="text-right text-ok">+{n(r.pnl)} MUSD</td></tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <p className="mt-3 text-xs text-muted">
+        Assumes {feePct}% total swap cost and ignores borrow interest. If BTC rises instead, the same arithmetic is a loss, and the short becomes liquidatable at about {n(liq, 0)} MUSD/BTC on Mezo&apos;s oracle.
+        Simulated figures are never shown as transactions.
+      </p>
+    </Card>
   );
 }
 
@@ -172,7 +216,7 @@ function Position({ hedge, isController, s }: { hedge: Address; isController: bo
           <div className="mt-3 space-y-2"><TxStatus state={approveTx.state} /><TxStatus state={openTx.state} /></div>
           {(heldMusd ?? 0n) + (heldBtc ?? 0n) > 0n && (
             <div className="mt-4 border-t border-border pt-4">
-              <p className="mb-2 text-sm">The module holds {fmt(heldMusd)} MUSD and {fmt(heldBtc, 18, 8)} BTC. Send it to your Ballast account to repay your Mezo loan from there.</p>
+              <p className="mb-2 text-sm">The module holds {fmt(heldMusd)} MUSD and {fmt(heldBtc, 18, 8)} BTC (your collateral back, plus any gain). Send it to your Ballast account, where it is credited as your MUSD and can repay your Mezo loan.</p>
               <TxButton variant="secondary" label="Send to my Ballast account" state={sendTx.state} disabled={!isController}
                 onClick={() => sendTx.run(async () => ({ address: hedge, abi: BallastHedgeAbi, functionName: "sendToAccount", account: address }), refresh)} />
               <div className="mt-2"><TxStatus state={sendTx.state} /></div>

@@ -29,7 +29,7 @@ function Inner({ children }: { children: (s: AccountState, refetch: () => void) 
       <Card title="Create your Ballast account">
         <p className="mb-4 max-w-prose text-sm text-muted">
           Ballast deploys a contract account that will own your Mezo trove, and mints an NFT to your wallet. Whoever holds the NFT controls the account.
-          While the account has an active loan the NFT cannot be transferred (hackathon safety restriction). The NFT controls BTC-backed assets — do not treat it as a collectible.
+          Whoever holds the NFT controls the whole account, including an open loan and its BTC collateral, and it can be transferred to another wallet. Do not treat it as a collectible.
         </p>
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
           <TxButton label="Create account (mint NFT)" state={tx.state} onClick={() => tx.run(async () => ({ address: cfg.ballast.BallastFactory, abi: BallastFactoryAbi, functionName: "createAccount", account: address }), () => refetch())} />

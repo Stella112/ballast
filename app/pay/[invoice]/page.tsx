@@ -47,8 +47,9 @@ function PayInner({ inv }: { inv: NonNullable<ReturnType<typeof decodeInvoice>> 
     ] : [],
     query: { enabled: !!acct, refetchInterval: 15_000 },
   });
-  const [controller, policy, payout, paid, maxRep] = (reads.data ?? []).map((r) => r.result) as [Address?, { repayBps: number; reserveBps: number; paused: boolean }?, Address?, boolean?, bigint?];
-  const split = useReadContract({ address: cfg.ballast.BallastRouter, abi: BallastRouterAbi, functionName: "computeSplit", args: [amount, policy?.repayBps ?? 0, policy?.reserveBps ?? 0, policy?.paused ?? false], query: { enabled: !!policy } });
+  const [controller, policy, payout, paid] = (reads.data ?? []).map((r) => r.result) as [Address?, { repayBps: number; reserveBps: number; paused: boolean }?, Address?, boolean?, bigint?];
+  // What the account will actually apply (policy, cash buffer, Mezo minimum-debt cap).
+  const split = useReadContract({ address: acct!, abi: BallastAccountAbi, functionName: "quoteSplit", args: [amount], query: { enabled: !!acct && !!policy, refetchInterval: 15_000 } });
 
   const sigOk = useQuery({
     queryKey: ["sig", invoiceId, controller],
@@ -65,13 +66,11 @@ function PayInner({ inv }: { inv: NonNullable<ReturnType<typeof decodeInvoice>> 
 
   const expired = Number(expiry) * 1000 < Date.now();
   const repayShare = split.data?.[2] ?? 0n;
-  const floorBlocked = maxRep !== undefined && repayShare > maxRep;
   const blockers: string[] = [];
   if (account.data === "0x0000000000000000000000000000000000000000") blockers.push("Unknown Ballast account.");
   if (sigOk.data === false) blockers.push("Signature does not match the account's current controller (invoice forged, edited, or NFT changed hands).");
   if (paid) blockers.push("This invoice has already been paid.");
   if (expired) blockers.push("This invoice has expired.");
-  if (floorBlocked) blockers.push(`The repay share (${fmt(repayShare)} MUSD) exceeds what the merchant's loan can accept (${fmt(maxRep)} MUSD); the payment would revert.`);
   const enough = bal.data !== undefined && bal.data >= amount;
   const approved = allowance.data !== undefined && allowance.data >= amount;
 

@@ -49,19 +49,20 @@ export function useAccountState(account?: Address) {
           { address: cfg.mezo.BorrowerOperations, abi: BorrowerOperationsAbi, functionName: "minNetDebt" },
           { address: cfg.mezo.BorrowerOperations, abi: BorrowerOperationsAbi, functionName: "MUSD_GAS_COMPENSATION" },
           { address: TM, abi: TroveManagerAbi, functionName: "MCR" },
+          { address: account, abi: BallastAccountAbi, functionName: "pendingIncome" },
         ]
       : [],
     query: { ...en, refetchInterval: 20_000 },
   });
   const r = q.data?.map((x) => x.result);
   if (!r || r.some((x) => x === undefined)) return { data: undefined, isLoading: q.isLoading, error: q.error, refetch: q.refetch };
-  const [controller, tokenId, policy, payout, hedgeReserve, freeMUSD, maxRepayable, status, ent, troveDebt, price, musdBal, minNetDebt, gasComp, mcr] = r;
+  const [controller, tokenId, policy, payout, hedgeReserve, freeMUSD, maxRepayable, status, ent, troveDebt, price, musdBal, minNetDebt, gasComp, mcr, pendingIncome] = r;
   const e = ent as readonly bigint[];
   const coll = e[0] + e[3];
   const principal = e[1] + e[4];
   const interest = e[2] + e[5];
   const totalDebt = (troveDebt as bigint) + e[4] + e[5];
-  const p = policy as { repayBps: number; reserveBps: number; paused: boolean; payout: Address };
+  const p = policy as { repayBps: number; reserveBps: number; paused: boolean; payout: Address; minCash: bigint };
   return {
     isLoading: false, error: null, refetch: q.refetch,
     data: {
@@ -69,7 +70,7 @@ export function useAccountState(account?: Address) {
       policy: p, payout: payout as Address,
       hedgeReserve: hedgeReserve as bigint, freeMUSD: freeMUSD as bigint, musdBal: musdBal as bigint, maxRepayable: maxRepayable as bigint,
       status: Number(status), coll, principal, interest, totalDebt, price: price as bigint,
-      minNetDebt: minNetDebt as bigint, gasComp: gasComp as bigint, mcr: mcr as bigint,
+      minNetDebt: minNetDebt as bigint, gasComp: gasComp as bigint, mcr: mcr as bigint, pendingIncome: pendingIncome as bigint,
     },
   };
 }

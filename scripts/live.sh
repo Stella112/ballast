@@ -147,7 +147,7 @@ state() {
   local price; price=$(cast call "$PF" "fetchPrice()(uint256)" --rpc-url "$R" -b "$blk" | cut -d' ' -f1)
   log "  price=$price ICR=$(cast call "$TM" "getCurrentICR(address,uint256)(uint256)" "$A" "$price" --rpc-url "$R" -b "$blk")"
   log "  inSortedTroves=$(cast call "$ST" "contains(address)(bool)" "$A" --rpc-url "$R" -b "$blk") prev=$(cast call "$ST" "getPrev(address)(address)" "$A" --rpc-url "$R" -b "$blk") next=$(cast call "$ST" "getNext(address)(address)" "$A" --rpc-url "$R" -b "$blk")"
-  log "  account MUSD=$(cast call "$MUSD" "balanceOf(address)(uint256)" "$A" --rpc-url "$R" -b "$blk") hedgeReserve=$(cast call "$A" "hedgeReserve()(uint256)" --rpc-url "$R" -b "$blk") maxRepayable=$(cast call "$A" "maxRepayable()(uint256)" --rpc-url "$R" -b "$blk")"
+  log "  account MUSD=$(cast call "$MUSD" "balanceOf(address)(uint256)" "$A" --rpc-url "$R" -b "$blk") hedgeReserve=$(cast call "$A" "hedgeReserve()(uint256)" --rpc-url "$R" -b "$blk") ownerMUSD=$(cast call "$A" "ownerMUSD()(uint256)" --rpc-url "$R" -b "$blk" 2>/dev/null) pendingIncome=$(cast call "$A" "pendingIncome()(uint256)" --rpc-url "$R" -b "$blk" 2>/dev/null) maxRepayable=$(cast call "$A" "maxRepayable()(uint256)" --rpc-url "$R" -b "$blk")"
   log "  controller=$(cast call "$A" "controller()(address)" --rpc-url "$R" -b "$blk")"
   log "  payer MUSD=$(cast call "$MUSD" "balanceOf(address)(uint256)" "$PAYER_ADDRESS" --rpc-url "$R" -b "$blk") merchant MUSD=$(cast call "$MUSD" "balanceOf(address)(uint256)" "$DEPLOYER_ADDRESS" --rpc-url "$R" -b "$blk")"
 }
@@ -169,8 +169,8 @@ cfg=json.load(open("config/deployments.mezo-testnet.json")); out=json.load(open(
 run=json.load(open("broadcast/Deploy.s.sol/31611/run-latest.json"))
 txs={t["contractName"]:t["hash"].lower() for t in run["transactions"]}
 rc={r["transactionHash"].lower():int(r["blockNumber"],16) for r in run["receipts"]}
-cfg["ballast"]={k:out[k] for k in ("BallastRouter","BallastAccountNFT","BallastFactory")}
-cfg["ballast"]["deployTx"]={k:{"hash":h,"block":rc.get(h)} for k,h in txs.items()}
+cfg.setdefault("ballast",{}).update({k:out[k] for k in ("BallastRouter","BallastAccountNFT","BallastFactory")})
+cfg["ballast"].setdefault("deployTx",{}).update({k:{"hash":h,"block":rc.get(h)} for k,h in txs.items()})
 json.dump(cfg,open("config/deployments.mezo-testnet.json","w"),indent=2)
 print("wrote ballast addresses to config")
 EOF
@@ -220,8 +220,8 @@ fund-payer)
   ;;
 set-policy)
   A=$(ballast BallastAccount)
-  send DEPLOYER_PRIVATE_KEY "$A" "setPolicy(uint16,uint16,bool,address)" "$1" "$2" false 0x0000000000000000000000000000000000000000
-  log "  policy=$(cast call "$A" "policy()((uint16,uint16,bool,address))" --rpc-url "$R")"
+  send DEPLOYER_PRIVATE_KEY "$A" "setPolicy(uint16,uint16,bool,address,uint256)" "$1" "$2" false 0x0000000000000000000000000000000000000000 "$(cast to-wei "${3:-0}")"
+  log "  policy=$(cast call "$A" "policy()((uint16,uint16,bool,address,uint256))" --rpc-url "$R")"
   ;;
 pay-invoice)
   AMT=$(cast to-wei "$1"); A=$(ballast BallastAccount); RT=$(ballast BallastRouter); T=$(ballast tokenId)
@@ -237,7 +237,7 @@ EOF
   log "INVOICE tokenId=$T invoiceId=$IID amount=$AMT expiry=$EXPIRY (merchant-signed EIP-712)"
   P=$(cast call "$TM" "getTrovePrincipal(address)(uint256)" "$A" --rpc-url "$R" | cut -d' ' -f1)
   COLL=$(cast call "$TM" "getTroveColl(address)(uint256)" "$A" --rpc-url "$R" | cut -d' ' -f1)
-  POL=$(cast call "$A" "policy()((uint16,uint16,bool,address))" --rpc-url "$R"); RB=$(echo "$POL" | tr -d '()' | cut -d, -f1 | tr -d ' ')
+  POL=$(cast call "$A" "policy()((uint16,uint16,bool,address,uint256))" --rpc-url "$R"); RB=$(echo "$POL" | tr -d '()' | cut -d, -f1 | tr -d ' ')
   read -r UP LO <<<"$(hints "$COLL" "$(python -c "print(max($P-$AMT*$RB//10000,1))")")"
   PAYOUT=$(cast call "$A" "payoutAddress()(address)" --rpc-url "$R")
   log "  policy=$POL payout=$PAYOUT hints=$UP,$LO"
@@ -328,6 +328,73 @@ settle-base) # settle-base <sequence>: anyone (payer here) submits the VAA to Ba
   send PAYER_PRIVATE_KEY "$RCV" "settle(bytes,address,address)" "$V" "$UP" "$LO" --gas-limit 3500000
   log "  payout MUSD after=$(cast call "$MUSD" "balanceOf(address)(uint256)" "$(cast call "$A" "payoutAddress()(address)" --rpc-url "$R")" --rpc-url "$R") receiver MUSD=$(cast call "$MUSD" "balanceOf(address)(uint256)" "$RCV" --rpc-url "$R")"
   state
+  ;;
+v1-close) # one-time migration: close the v1 demo trove, return BTC + MUSD to the deployer, archive v1 addresses
+  V1A=$(j "d['ballastV1']['BallastAccount']")
+  DEBT=$(cast call "$TM" "getTroveDebt(address)(uint256)" "$V1A" --rpc-url "$R" | cut -d' ' -f1)
+  BAL=$(cast call "$MUSD" "balanceOf(address)(uint256)" "$V1A" --rpc-url "$R" | cut -d' ' -f1)
+  RES=$(cast call "$V1A" "hedgeReserve()(uint256)" --rpc-url "$R" | cut -d' ' -f1)
+  NEED=$(python -c "print(max(0, $DEBT-200*10**18+$RES+2*10**18-$BAL))")
+  log "V1-CLOSE account=$V1A debt=$DEBT musd=$BAL reserve=$RES topUpFromPayer=$NEED"
+  [ "$NEED" = "0" ] || send PAYER_PRIVATE_KEY "$MUSD" "transfer(address,uint256)" "$V1A" "$NEED"
+  send DEPLOYER_PRIVATE_KEY "$V1A" "closeTrove()" --gas-limit 1500000
+  log "  v1 troveStatus=$(cast call "$TM" "getTroveStatus(address)(uint8)" "$V1A" --rpc-url "$R") accountBTC=$(cast balance "$V1A" --rpc-url "$R")"
+  send DEPLOYER_PRIVATE_KEY "$V1A" "withdrawBTC(address,uint256)" "$DEPLOYER_ADDRESS" "$(cast balance "$V1A" --rpc-url "$R")"
+  send DEPLOYER_PRIVATE_KEY "$V1A" "withdrawReserve(address,uint256)" "$DEPLOYER_ADDRESS" "$(cast call "$V1A" "hedgeReserve()(uint256)" --rpc-url "$R" | cut -d' ' -f1)"
+  send DEPLOYER_PRIVATE_KEY "$V1A" "withdrawMUSD(address,uint256)" "$DEPLOYER_ADDRESS" "$(cast call "$V1A" "freeMUSD()(uint256)" --rpc-url "$R" | cut -d' ' -f1)"
+  log "  deployer BTC=$(cast balance "$DEPLOYER_ADDRESS" --ether --rpc-url "$R") MUSD=$(cast call "$MUSD" "balanceOf(address)(uint256)" "$DEPLOYER_ADDRESS" --rpc-url "$R")"
+  ;;
+deploy-periphery) # v2: hedge factory (new BallastFactory) + bridge receiver (new router)
+  forge build >/dev/null
+  create BallastHedgeFactory out/BallastHedge.sol/BallastHedgeFactory.json "c(address,address,(address,address,address,address,uint256),address,address)" "$(ballast BallastFactory)" "$(ballast Morpho)" "$(mp_tuple)" "$POOLS_ROUTER" "$POOL_FACTORY"
+  create BallastBridgeReceiver out/BallastBridgeReceiver.sol/BallastBridgeReceiver.json "c(address,uint16,bytes32,address,address,address,address)" "$MTB" 10004 "0x000000000000000000000000${BUSDC:2}" "$POOLS_ROUTER" "$POOL_FACTORY" "$MUSD" "$(ballast BallastRouter)"
+  ;;
+pay) # pay <MUSD> <reference text>: payer wallet calls BallastRouter.pay(accountId, amount, reference)
+  AMT=$(cast to-wei "$1"); RT=$(ballast BallastRouter); T=$(ballast tokenId); REF=$(cast format-bytes32-string "$2")
+  log "PAY accountId=$T amount=$AMT reference=$2 quoteSplit(owner,reserve,repay)=$(cast call "$(ballast BallastAccount)" "quoteSplit(uint256)(uint256,uint256,uint256)" "$AMT" --rpc-url "$R" | tr '\n' ' ')"
+  state
+  send PAYER_PRIVATE_KEY "$MUSD" "approve(address,uint256)" "$RT" "$AMT"
+  send PAYER_PRIVATE_KEY "$RT" "pay(uint256,uint256,bytes32)" "$T" "$AMT" "$REF" --gas-limit 6000000
+  cp evidence/last-receipt.json evidence/last-pay-receipt.json
+  state
+  ;;
+keeper) # keeper <MUSD>: payer sends MUSD straight to the account, then the PAYER (not the owner) triggers the policy
+  AMT=$(cast to-wei "$1"); A=$(ballast BallastAccount)
+  [ "$(cast call "$A" "pendingIncome()(uint256)" --rpc-url "$R" | cut -d' ' -f1)" != "0" ] || send PAYER_PRIVATE_KEY "$MUSD" "transfer(address,uint256)" "$A" "$AMT"
+  log "KEEPER pendingIncome=$(cast call "$A" "pendingIncome()(uint256)" --rpc-url "$R") ownerMUSD=$(cast call "$A" "ownerMUSD()(uint256)" --rpc-url "$R")"
+  state
+  REPAY=$(cast call "$A" "quoteSplit(uint256)(uint256,uint256,uint256)" "$(cast call "$A" "pendingIncome()(uint256)" --rpc-url "$R" | cut -d' ' -f1)" --rpc-url "$R" | sed -n 3p | cut -d' ' -f1)
+  COLL=$(cast call "$TM" "getTroveColl(address)(uint256)" "$A" --rpc-url "$R" | cut -d' ' -f1)
+  P=$(cast call "$TM" "getTrovePrincipal(address)(uint256)" "$A" --rpc-url "$R" | cut -d' ' -f1)
+  read -r UP LO <<<"$(hints "$COLL" "$(python -c "print(max($P-$REPAY,1))")")"
+  send PAYER_PRIVATE_KEY "$A" "processIncome(address,address)" "$UP" "$LO" --gas-limit 2500000
+  cp evidence/last-receipt.json evidence/last-keeper-receipt.json
+  log "  pendingIncome=$(cast call "$A" "pendingIncome()(uint256)" --rpc-url "$R") ownerMUSD=$(cast call "$A" "ownerMUSD()(uint256)" --rpc-url "$R")"
+  state
+  ;;
+nft-roundtrip) # transfer the account NFT (with its OPEN loan) deployer -> payer, check control, then back
+  N=$(ballast BallastAccountNFT); T=$(ballast tokenId); A=$(ballast BallastAccount)
+  log "NFT-ROUNDTRIP owner=$(cast call "$N" "ownerOf(uint256)(address)" "$T" --rpc-url "$R") troveStatus=$(cast call "$TM" "getTroveStatus(address)(uint8)" "$A" --rpc-url "$R")"
+  send DEPLOYER_PRIVATE_KEY "$N" "transferFrom(address,address,uint256)" "$DEPLOYER_ADDRESS" "$PAYER_ADDRESS" "$T"
+  log "  after: owner=$(cast call "$N" "ownerOf(uint256)(address)" "$T" --rpc-url "$R") account.controller=$(cast call "$A" "controller()(address)" --rpc-url "$R") payout=$(cast call "$A" "payoutAddress()(address)" --rpc-url "$R") troveStatus=$(cast call "$TM" "getTroveStatus(address)(uint8)" "$A" --rpc-url "$R")"
+  log "  old holder simulated withdrawMUSD: $(cast call "$A" "withdrawMUSD(address,uint256)" "$DEPLOYER_ADDRESS" 1 --from "$DEPLOYER_ADDRESS" --rpc-url "$R" 2>&1 | tail -1 | cut -c1-120)"
+  send PAYER_PRIVATE_KEY "$N" "transferFrom(address,address,uint256)" "$PAYER_ADDRESS" "$DEPLOYER_ADDRESS" "$T"
+  log "  back: owner=$(cast call "$N" "ownerOf(uint256)(address)" "$T" --rpc-url "$R") controller=$(cast call "$A" "controller()(address)" --rpc-url "$R")"
+  ;;
+borrow) # borrow <MUSD>: controller borrows more (restores repayable headroom)
+  AMT=$(cast to-wei "$1"); A=$(ballast BallastAccount)
+  COLL=$(cast call "$TM" "getTroveColl(address)(uint256)" "$A" --rpc-url "$R" | cut -d' ' -f1)
+  P=$(cast call "$TM" "getTrovePrincipal(address)(uint256)" "$A" --rpc-url "$R" | cut -d' ' -f1)
+  read -r UP LO <<<"$(hints "$COLL" "$(python -c "print($P+$AMT)")")"
+  send DEPLOYER_PRIVATE_KEY "$A" "borrow(uint256,address,address)" "$AMT" "$UP" "$LO"
+  state
+  ;;
+pool-rebalance) # pool-rebalance <MUSD>: payer swaps MUSD into the Ballast-seeded USDC/MUSD pool so it holds enough MUSD
+  AMT=$(cast to-wei "$1"); W=$(ballast BridgedUSDC)
+  send PAYER_PRIVATE_KEY "$MUSD" "approve(address,uint256)" "$POOLS_ROUTER" "$AMT"
+  send PAYER_PRIVATE_KEY "$POOLS_ROUTER" "swapExactTokensForTokens(uint256,uint256,(address,address,bool,address)[],address,uint256)" "$AMT" 0 "[($MUSD,$W,true,$POOL_FACTORY)]" "$PAYER_ADDRESS" $(( $(date -u +%s) + 1800 ))
+  log "  pool reserves=$(cast call "$(ballast UsdcMusdPool)" "getReserves()(uint256,uint256,uint256)" --rpc-url "$R" | tr '
+' ' ')"
   ;;
 deploy-hedge-stack) # Morpho Blue v1.0.0 + AdaptiveCurveIrm (upstream bytecode) + Mezo oracle + market + BallastHedgeFactory
   [ -z "$(ballast Morpho)" ] || { echo "hedge stack already deployed per $CFG; refusing to overwrite"; exit 1; }

@@ -5,7 +5,7 @@ import { parseEther, parseUnits, isAddress, type Address } from "viem";
 import { AccountGate } from "@/components/account-gate";
 import { Addr, Badge, Button, Card, Field, Notice, Stat, fmt, inputCls, pct } from "@/components/ui";
 import { TxButton, TxStatus, useTx } from "@/components/tx";
-import { BallastAccountAbi, BorrowerOperationsAbi } from "@/lib/abis";
+import { BallastAccountAbi, BallastAccountNFTAbi, BorrowerOperationsAbi } from "@/lib/abis";
 import { cfg, mezoTestnet } from "@/lib/config";
 import { computeHints } from "@/lib/mezo/hints";
 import { TROVE_STATUS, type AccountState } from "@/lib/useBallast";
@@ -54,13 +54,75 @@ function Overview({ s, refetch }: { s: AccountState; refetch: () => void }) {
       <Card title="Funds held by the account">
         <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
           <Stat label="Free MUSD" value={fmt(s.freeMUSD)} sub="Withdrawable by controller" />
-          <Stat label="Hedge reserve" value={fmt(s.hedgeReserve)} sub="Uninvested MUSD — not a hedge" />
+          <Stat label="Hedge reserve" value={fmt(s.hedgeReserve)} sub="MUSD set aside for a hedge" />
           <Stat label="Free BTC" value={btc ? `${fmt(btc.value, 18, 6)}` : "—"} sub="Not locked in Mezo" />
           <Stat label="Max repay (to floor)" value={fmt(s.maxRepayable)} sub={`net debt floor ${fmt(s.minNetDebt, 18, 0)} MUSD`} />
         </div>
       </Card>
 
+      <Income s={s} refetch={refetch} />
+      <PayLinkAndTransfer s={s} refetch={refetch} />
+
       {active && <Actions s={s} freeBtc={btc?.value ?? 0n} refetch={refetch} />}
+    </>
+  );
+}
+
+/** Keeper: MUSD that arrived in the account directly (e.g. from a bridge). Anyone can apply the owner's policy to it. */
+function Income({ s, refetch }: { s: AccountState; refetch: () => void }) {
+  const { address } = useAccount();
+  const client = usePublicClient();
+  const tx = useTx();
+  const q = useReadContract({ address: s.account, abi: BallastAccountAbi, functionName: "quoteSplit", args: [s.pendingIncome], query: { enabled: s.pendingIncome > 0n } });
+  return (
+    <Card title="Income waiting for your policy" right={s.pendingIncome > 0n ? <Badge tone="warn">{fmt(s.pendingIncome)} MUSD</Badge> : <Badge tone="neutral">None</Badge>}>
+      <p className="text-sm text-muted">
+        MUSD sent straight to the account address (for example by a bridge) waits here until the policy is applied. Anyone — a keeper bot, the payer, or you — can trigger it;
+        the caller cannot change the split or the destinations.
+      </p>
+      {s.pendingIncome > 0n && q.data && (
+        <p className="mt-3 text-sm num">Would split: {fmt(q.data[0])} to you · {fmt(q.data[1])} hedge reserve · {fmt(q.data[2])} repays the loan.</p>
+      )}
+      <div className="mt-3">
+        <TxButton label="Apply policy now" state={tx.state} disabled={s.pendingIncome === 0n || !q.data} onClick={() => tx.run(async () => {
+          const zero = "0x0000000000000000000000000000000000000000" as Address;
+          const repay = q.data![2];
+          const [up, lo] = repay > 0n ? await computeHints(client!, s.coll, principalAfterRepay(s.principal, s.interest, repay) || 1n) : [zero, zero];
+          return { address: s.account, abi: BallastAccountAbi, functionName: "processIncome", args: [up, lo], account: address };
+        }, refetch)} />
+      </div>
+      <div className="mt-3"><TxStatus state={tx.state} /></div>
+    </Card>
+  );
+}
+
+function PayLinkAndTransfer({ s, refetch }: { s: AccountState; refetch: () => void }) {
+  const { address } = useAccount();
+  const tx = useTx();
+  const [to, setTo] = useState("");
+  const isController = address?.toLowerCase() === s.controller.toLowerCase();
+  const link = typeof window === "undefined" ? "" : `${window.location.origin}/pay/a/${s.tokenId.toString()}`;
+  return (
+    <>
+      <Card title="Your pay link">
+        <p className="text-sm text-muted">Anyone can pay any amount of MUSD to this link; your policy splits it. Other apps call <code>BallastRouter.pay(accountId, amount, reference)</code> for the same result.</p>
+        <div className="mt-3 flex flex-wrap items-center gap-2">
+          <code className="break-all rounded bg-surface-2 px-2 py-1 text-xs">{link}</code>
+          <Button variant="secondary" onClick={() => navigator.clipboard.writeText(link)}>Copy</Button>
+        </div>
+      </Card>
+      <Card title="Transfer this account">
+        <Notice tone="warn" title="This hands over everything">
+          Whoever holds the account NFT controls the whole account: the Mezo loan and its BTC collateral, the MUSD and reserve held here, and the hedge module. The new holder also takes on the debt.
+          Only plain wallet addresses are accepted (not contracts). Your custom payout address is cleared so income follows the new holder.
+        </Notice>
+        <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-end">
+          <Field label="New holder (wallet address)"><input className={inputCls + " font-mono"} placeholder="0x…" value={to} onChange={(e) => setTo(e.target.value)} /></Field>
+          <Button variant="danger" disabled={!isController || !isAddress(to) || tx.state.s === "pending" || tx.state.s === "wallet"} onClick={() =>
+            tx.run(async () => ({ address: cfg.ballast.BallastAccountNFT, abi: BallastAccountNFTAbi, functionName: "transferFrom", args: [s.controller, to as Address, s.tokenId], account: address }), refetch)}>Transfer account</Button>
+        </div>
+        <div className="mt-3"><TxStatus state={tx.state} /></div>
+      </Card>
     </>
   );
 }
@@ -141,7 +203,7 @@ function Actions({ s, freeBtc, refetch }: { s: AccountState; freeBtc: bigint; re
         <TxButton variant="secondary" label="Withdraw reserve" state={tx.state} disabled={a === 0n || a > s.hedgeReserve || !toOk} onClick={go(async () => ({ address: s.account, abi: BallastAccountAbi, functionName: "withdrawReserve", args: [to as Address, a], account: address }))} />
       </div>
       <p className="mt-3 text-xs text-muted">
-        Repay uses free MUSD held by the account (not the reserve) and is limited to {fmt(s.maxRepayable)} MUSD so net debt stays above Mezo&apos;s floor. Closing the trove requires {fmt(s.totalDebt - s.gasComp)} MUSD free in the account.
+        Repay uses your MUSD held by the account (not the reserve) and is limited to {fmt(s.maxRepayable)} MUSD so net debt stays above Mezo&apos;s floor. Closing the trove requires {fmt(s.totalDebt - s.gasComp)} MUSD free in the account.
       </p>
       <div className="mt-3 flex flex-wrap gap-2">
         <Button variant="danger" disabled={s.freeMUSD < s.totalDebt - s.gasComp || tx.state.s === "pending"} onClick={go(async () => ({ address: s.account, abi: BallastAccountAbi, functionName: "closeTrove", account: address }))}>Close trove</Button>
