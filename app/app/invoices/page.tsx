@@ -20,6 +20,11 @@ export default function InvoicesPage() {
         Each invoice can be paid once, for the exact amount, before it expires. Payments are split by your Payback policy at the moment of payment.
       </p>
       <AccountGate purpose="create invoices">{(s) => <Create s={s} />}</AccountGate>
+      <Notice tone="neutral" title="Pay from Base (USDC) — planned, not available">
+        Customers pay in MUSD on Mezo today. A Base → Mezo route needs a testnet MUSD bridge; Mezo documents its Wormhole NTT bridge contracts for mainnet only, with no Base Sepolia or Mezo testnet deployment (checked 2026-11-14).
+        Ballast will not present a simulated or self-funded bridge as a real transfer.
+      </Notice>
+      <p className="text-sm text-muted">Is your Mezo loan held by your own wallet instead of a Ballast account? Use <a className="text-accent-strong underline" href="/app/existing">Existing loan</a>.</p>
     </div>
   );
 }

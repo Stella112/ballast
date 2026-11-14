@@ -13,6 +13,7 @@ const nav = [
   ["/app", "Account"],
   ["/app/payback", "Payback"],
   ["/app/radar", "Radar"],
+  ["/app/existing", "Existing loan"],
   ["/app/invoices", "Invoices"],
   ["/app/activity", "Activity"],
   ["/app/hedge", "Hedge"],

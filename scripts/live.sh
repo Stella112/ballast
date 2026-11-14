@@ -12,6 +12,10 @@
 #   BALLAST_LIVE=1 scripts/live.sh fund-payer <MUSD>                     account free MUSD -> payer wallet
 #   BALLAST_LIVE=1 scripts/live.sh set-policy <repayBps> <reserveBps>
 #   BALLAST_LIVE=1 scripts/live.sh pay-invoice <MUSD>                    payer pays a merchant-signed invoice
+#   BALLAST_LIVE=1 scripts/live.sh deploy-adapter                        deploy BallastRepaymentAdapter
+#   BALLAST_LIVE=1 scripts/live.sh open-wallet-trove <debt> <coll>       payer wallet opens its own (non-Ballast) trove
+#   BALLAST_LIVE=1 scripts/live.sh wallet-state <address>
+#   BALLAST_LIVE=1 scripts/live.sh pay-direct-invoice <MUSD> <repayMUSD> deployer pays the wallet-borrower's invoice; signed repay
 set -euo pipefail
 cd "$(dirname "$0")/.."
 [ "${BALLAST_LIVE:-}" = "1" ] || { echo "refusing: set BALLAST_LIVE=1 to broadcast to Mezo testnet"; exit 1; }
@@ -166,5 +170,106 @@ EOF
   log "  invoicePaid=$(cast call "$RT" "invoicePaid(uint256,bytes32)(bool)" "$T" "$IID" --rpc-url "$R")"
   state
   ;;
-*) sed -n 2,16p "$0"; exit 1 ;;
+deploy-adapter)
+  [ -z "$(ballast BallastRepaymentAdapter)" ] || { echo "adapter already deployed per $CFG; refusing to overwrite"; exit 1; }
+  BOS=$(cast call "$BO" "borrowerOperationsSignaturesAddress()(address)" --rpc-url "$R")
+  log "DEPLOY-ADAPTER signatures=$BOS (read from BorrowerOperations) tm=$TM musd=$MUSD"
+  OUT=$(forge create contracts/src/BallastRepaymentAdapter.sol:BallastRepaymentAdapter --rpc-url "$R" --private-key "$DEPLOYER_PRIVATE_KEY" --broadcast --json --constructor-args "$BOS" "$TM" "$MUSD")
+  AD=$(echo "$OUT" | python -c 'import json,sys;print(json.load(sys.stdin)["deployedTo"])')
+  H=$(echo "$OUT" | python -c 'import json,sys;print(json.load(sys.stdin)["transactionHash"])')
+  B=$(cast receipt "$H" blockNumber --rpc-url "$R"); S=$(cast receipt "$H" status --rpc-url "$R")
+  log "TX deploy BallastRepaymentAdapter status=$S block=$B hash=$H $EXP/tx/$H"
+  [ "$S" = "1 (success)" ] || [ "$S" = "1" ] || { log "TX FAILED"; exit 1; }
+  log "  adapter=$AD codeBytes=$(( ($(cast code "$AD" --rpc-url "$R" | wc -c) - 3) / 2 )) borrowerOperations()=$(cast call "$AD" "borrowerOperations()(address)" --rpc-url "$R")"
+  python - "$AD" "$H" "$B" "$BOS" <<'EOF'
+import json,sys
+ad,h,b,bos=sys.argv[1:5]
+cfg=json.load(open("config/deployments.mezo-testnet.json"))
+cfg["mezo"]["BorrowerOperationsSignatures"]=bos
+cfg["ballast"]["BallastRepaymentAdapter"]=ad
+cfg["ballast"]["deployTx"]["BallastRepaymentAdapter"]={"hash":h,"block":int(b)}
+json.dump(cfg,open("config/deployments.mezo-testnet.json","w"),indent=2)
+print("wrote adapter to config")
+EOF
+  ;;
+wallet-state) # wallet-state <address>: an ordinary wallet-held Mezo trove
+  W=$1; blk=$(cast block-number --rpc-url "$R")
+  log "WALLET-STATE @block $blk borrower=$W status=$(cast call "$TM" "getTroveStatus(address)(uint8)" "$W" --rpc-url "$R" -b "$blk") debt=$(cast call "$TM" "getTroveDebt(address)(uint256)" "$W" --rpc-url "$R" -b "$blk") coll=$(cast call "$TM" "getTroveColl(address)(uint256)" "$W" --rpc-url "$R" -b "$blk") MUSD=$(cast call "$MUSD" "balanceOf(address)(uint256)" "$W" --rpc-url "$R" -b "$blk")"
+  ;;
+open-wallet-trove) # open-wallet-trove <debtMUSD> <collBTC>: PAYER wallet opens its OWN trove (an existing, non-Ballast borrower)
+  DEBT=$(cast to-wei "$1"); COLL=$(cast to-wei "$2")
+  FEE=$(cast call "$BO" "getBorrowingFee(uint256)(uint256)" "$DEBT" --rpc-url "$R" | cut -d' ' -f1)
+  read -r UP LO <<<"$(hints "$COLL" "$(python -c "print($DEBT+$FEE+200*10**18)")")"
+  log "OPEN-WALLET-TROVE borrower=$PAYER_ADDRESS debt=$DEBT fee=$FEE coll=$COLL hints=$UP,$LO"
+  send PAYER_PRIVATE_KEY "$BO" "openTrove(uint256,address,address)" "$DEBT" "$UP" "$LO" --value "$COLL"
+  "$0" wallet-state "$PAYER_ADDRESS"
+  ;;
+wallet-borrow) # wallet-borrow <MUSD>: PAYER wallet borrows more from its own trove (adds repayable headroom above the floor)
+  AMT=$(cast to-wei "$1")
+  FEE=$(cast call "$BO" "getBorrowingFee(uint256)(uint256)" "$AMT" --rpc-url "$R" | cut -d' ' -f1)
+  COLL=$(cast call "$TM" "getTroveColl(address)(uint256)" "$PAYER_ADDRESS" --rpc-url "$R" | cut -d' ' -f1)
+  P=$(cast call "$TM" "getTrovePrincipal(address)(uint256)" "$PAYER_ADDRESS" --rpc-url "$R" | cut -d' ' -f1)
+  read -r UP LO <<<"$(hints "$COLL" "$(python -c "print($P+$AMT+$FEE)")")"
+  log "WALLET-BORROW borrower=$PAYER_ADDRESS amount=$AMT fee=$FEE hints=$UP,$LO"
+  send PAYER_PRIVATE_KEY "$BO" "withdrawMUSD(uint256,address,address)" "$AMT" "$UP" "$LO"
+  "$0" wallet-state "$PAYER_ADDRESS"
+  ;;
+pay-direct-invoice) # pay-direct-invoice <amountMUSD> <repayMUSD>: merchant = PAYER wallet trove, customer = DEPLOYER
+  AMT=$(cast to-wei "$1"); RP=$(cast to-wei "$2"); AD=$(ballast BallastRepaymentAdapter); M=$PAYER_ADDRESS
+  BOS=$(j "d['mezo']['BorrowerOperationsSignatures']")
+  IID=$(cast keccak "ballast-direct-invoice-$(date -u +%s)"); EXPIRY=$(( $(date -u +%s) + 3600 )); DL=$(( $(date -u +%s) + 3600 ))
+  NONCE=$(cast call "$AD" "mezoNonce(address)(uint256)" "$M" --rpc-url "$R" | cut -d' ' -f1)
+  cat > evidence/direct-invoice.json <<EOF
+{"types":{"EIP712Domain":[{"name":"name","type":"string"},{"name":"version","type":"string"},{"name":"chainId","type":"uint256"},{"name":"verifyingContract","type":"address"}],
+"DirectInvoice":[{"name":"merchant","type":"address"},{"name":"invoiceId","type":"bytes32"},{"name":"amount","type":"uint256"},{"name":"repayAmount","type":"uint256"},{"name":"expiry","type":"uint256"}]},
+"primaryType":"DirectInvoice","domain":{"name":"BallastRepaymentAdapter","version":"1","chainId":31611,"verifyingContract":"$AD"},
+"message":{"merchant":"$M","invoiceId":"$IID","amount":"$AMT","repayAmount":"$RP","expiry":$EXPIRY}}
+EOF
+  cat > evidence/mezo-repay.json <<EOF
+{"types":{"EIP712Domain":[{"name":"name","type":"string"},{"name":"version","type":"string"},{"name":"chainId","type":"uint256"},{"name":"verifyingContract","type":"address"}],
+"RepayMUSD":[{"name":"amount","type":"uint256"},{"name":"borrower","type":"address"},{"name":"nonce","type":"uint256"},{"name":"deadline","type":"uint256"}]},
+"primaryType":"RepayMUSD","domain":{"name":"BorrowerOperationsSignatures","version":"1","chainId":31611,"verifyingContract":"$BOS"},
+"message":{"amount":"$RP","borrower":"$M","nonce":"$NONCE","deadline":"$DL"}}
+EOF
+  ISIG=$(cast wallet sign --data --from-file evidence/direct-invoice.json --private-key "$PAYER_PRIVATE_KEY")
+  RSIG=$(cast wallet sign --data --from-file evidence/mezo-repay.json --private-key "$PAYER_PRIVATE_KEY")
+  COLL=$(cast call "$TM" "getTroveColl(address)(uint256)" "$M" --rpc-url "$R" | cut -d' ' -f1)
+  P=$(cast call "$TM" "getTrovePrincipal(address)(uint256)" "$M" --rpc-url "$R" | cut -d' ' -f1)
+  read -r UP LO <<<"$(hints "$COLL" "$(python -c "print(max($P-$RP,1))")")"
+  log "DIRECT-INVOICE merchant=$M invoiceId=$IID amount=$AMT repay=$RP expiry=$EXPIRY mezoNonce=$NONCE deadline=$DL hints=$UP,$LO (both signatures by merchant wallet, off-chain)"
+  log "  BEFORE customer MUSD=$(cast call "$MUSD" "balanceOf(address)(uint256)" "$DEPLOYER_ADDRESS" --rpc-url "$R")"
+  "$0" wallet-state "$M"
+  send DEPLOYER_PRIVATE_KEY "$MUSD" "approve(address,uint256)" "$AD" "$AMT"
+  send DEPLOYER_PRIVATE_KEY "$AD" "payDirectInvoice((address,bytes32,uint256,uint256,uint256),bytes,(uint256,bytes,address,address))" "($M,$IID,$AMT,$RP,$EXPIRY)" "$ISIG" "($DL,$RSIG,$UP,$LO)"
+  log "  AFTER customer MUSD=$(cast call "$MUSD" "balanceOf(address)(uint256)" "$DEPLOYER_ADDRESS" --rpc-url "$R") adapter MUSD=$(cast call "$MUSD" "balanceOf(address)(uint256)" "$AD" --rpc-url "$R")"
+  log "  invoicePaid=$(cast call "$AD" "invoicePaid(bytes32)(bool)" "$(cast call "$AD" "invoiceKey(address,bytes32)(bytes32)" "$M" "$IID" --rpc-url "$R")" --rpc-url "$R") mezoNonce=$(cast call "$AD" "mezoNonce(address)(uint256)" "$M" --rpc-url "$R")"
+  "$0" wallet-state "$M"
+  ;;
+pay-direct-link) # pay-direct-link <url>: DEPLOYER pays a wallet-loan invoice link created by the app / make-direct-invoice.ts
+  CODE=${1##*/pay/}; AD=$(ballast BallastRepaymentAdapter)
+  read -r M AMT RP EXPIRY MEMO_SALT ISIG RSIG <<<"$(python - "$CODE" <<'EOF'
+import base64,json,sys
+s=sys.argv[1]; s=s.replace('-','+').replace('_','/'); s+='='*(-len(s)%4); p=json.loads(base64.b64decode(s))
+assert p["v"]==2
+print(p["merchant"],p["amount"],p["repayAmount"],p["expiry"],"-",p["invoiceSig"],p["repaySig"] or "0x")
+EOF
+)"
+  IID=$(python - "$CODE" <<'EOF'
+import base64,json,sys,subprocess
+s=sys.argv[1]; s=s.replace('-','+').replace('_','/'); s+='='*(-len(s)%4); p=json.loads(base64.b64decode(s))
+enc=subprocess.check_output(["cast","abi-encode","f(string,bytes32)",p["memo"],p["salt"]],text=True).strip()
+print(subprocess.check_output(["cast","keccak",enc],text=True).strip())
+EOF
+)
+  COLL=$(cast call "$TM" "getTroveColl(address)(uint256)" "$M" --rpc-url "$R" | cut -d' ' -f1)
+  P=$(cast call "$TM" "getTrovePrincipal(address)(uint256)" "$M" --rpc-url "$R" | cut -d' ' -f1)
+  read -r UP LO <<<"$(hints "$COLL" "$(python -c "print(max($P-$RP,1))")")"
+  log "PAY-DIRECT-LINK merchant=$M invoiceId=$IID amount=$AMT repay=$RP expiry=$EXPIRY hints=$UP,$LO (signatures from the link, made with viem)"
+  "$0" wallet-state "$M"
+  send DEPLOYER_PRIVATE_KEY "$MUSD" "approve(address,uint256)" "$AD" "$AMT"
+  send DEPLOYER_PRIVATE_KEY "$AD" "payDirectInvoice((address,bytes32,uint256,uint256,uint256),bytes,(uint256,bytes,address,address))" "($M,$IID,$AMT,$RP,$EXPIRY)" "$ISIG" "($EXPIRY,$RSIG,$UP,$LO)"
+  log "  invoicePaid=$(cast call "$AD" "invoicePaid(bytes32)(bool)" "$(cast call "$AD" "invoiceKey(address,bytes32)(bytes32)" "$M" "$IID" --rpc-url "$R")" --rpc-url "$R") mezoNonce=$(cast call "$AD" "mezoNonce(address)(uint256)" "$M" --rpc-url "$R")"
+  "$0" wallet-state "$M"
+  ;;
+*) sed -n 2,20p "$0"; exit 1 ;;
 esac

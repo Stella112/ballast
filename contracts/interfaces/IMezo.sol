@@ -54,3 +54,22 @@ interface IHintHelpers {
 interface IPriceFeed {
     function fetchPrice() external view returns (uint256);
 }
+
+/// @dev Mezo BorrowerOperationsSignatures (testnet proxy 0xD757e3646AF370b15f32EB557F0F8380Df7D639e,
+///      implementation 0xEec635aB00463A4a803DE38C9d858A0FE3bdc235, explorer-verified, source = mezo-org/musd commit da7888a).
+///      repayMUSDWithSignature selector 0x2cf63a40 confirmed in deployed bytecode (2026-11-14).
+///      EIP-712 domain ("BorrowerOperationsSignatures", "1", chainid, proxy);
+///      type RepayMUSD(uint256 amount,address borrower,uint256 nonce,uint256 deadline).
+///      Mezo burns the MUSD from msg.sender (the caller), not from the borrower.
+interface IBorrowerOperationsSignatures {
+    function repayMUSDWithSignature(
+        uint256 _amount,
+        address _upperHint,
+        address _lowerHint,
+        address _borrower,
+        bytes memory _signature,
+        uint256 _deadline
+    ) external;
+    function getNonce(address user) external view returns (uint256);
+    function borrowerOperations() external view returns (address);
+}

@@ -9,7 +9,8 @@
     "TroveManager": "0xE47c80e8c23f6B4A1aE41c34837a0599D5D16bb0",
     "SortedTroves": "0x722E4D24FD6Ff8b0AC679450F3D91294607268fA",
     "HintHelpers": "0x4e4cBA3779d56386ED43631b4dCD6d8EacEcBCF6",
-    "PriceFeed": "0x86bCF0841622a5dAC14A313a15f96A95421b9366"
+    "PriceFeed": "0x86bCF0841622a5dAC14A313a15f96A95421b9366",
+    "BorrowerOperationsSignatures": "0xD757e3646AF370b15f32EB557F0F8380Df7D639e"
   },
   "ballast": {
     "BallastRouter": "0x2a3Ce214189F62A2f15b58ecFD7c4CfCDa97dF1d",
@@ -27,10 +28,15 @@
       "BallastFactory": {
         "hash": "0x4d4853e529b977d486836c29505f6c3aee2b65fe781ffb2565ed78e84226ac1f",
         "block": 16762087
+      },
+      "BallastRepaymentAdapter": {
+        "hash": "0x8fefd7dd8602116059eabbac2c575f16fdcbc21856b8cd0b8cb203a2b578afd5",
+        "block": 16764880
       }
     },
     "tokenId": 1,
     "BallastAccount": "0xDE61A300ca381463FD6FeCc6b2602980a2Db6323",
-    "createAccountTx": "0xc8c82af3b6baf50c7d516e124e2d7ae91dee2c680274caf1bf2f492cac3c7815"
+    "createAccountTx": "0xc8c82af3b6baf50c7d516e124e2d7ae91dee2c680274caf1bf2f492cac3c7815",
+    "BallastRepaymentAdapter": "0x096f8C705fce216bdBAEc7f86022117682A9f7DC"
   }
 }

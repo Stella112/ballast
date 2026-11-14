@@ -42,17 +42,31 @@ export function randomSalt(): Hex {
   return toHex(b);
 }
 
-export function encodeInvoice(p: InvoicePayload): string {
+export function encodeInvoice(p: InvoicePayload | { v: 2 }): string {
   const json = JSON.stringify(p);
   const b64 = typeof window === "undefined" ? Buffer.from(json).toString("base64") : btoa(unescape(encodeURIComponent(json)));
   return b64.replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
 }
 
+function decodeJson(s: string): Record<string, unknown> {
+  const b64 = s.replace(/-/g, "+").replace(/_/g, "/");
+  const json = typeof window === "undefined" ? Buffer.from(b64, "base64").toString() : decodeURIComponent(escape(atob(b64)));
+  return JSON.parse(json);
+}
+
+/** Version of an invoice link (1 = Ballast account, 2 = wallet-held Mezo loan), or null if undecodable. */
+export function invoiceVersion(s: string): 1 | 2 | null {
+  try {
+    const v = decodeJson(s).v;
+    return v === 1 || v === 2 ? v : null;
+  } catch {
+    return null;
+  }
+}
+
 export function decodeInvoice(s: string): InvoicePayload | null {
   try {
-    const b64 = s.replace(/-/g, "+").replace(/_/g, "/");
-    const json = typeof window === "undefined" ? Buffer.from(b64, "base64").toString() : decodeURIComponent(escape(atob(b64)));
-    const p = JSON.parse(json);
+    const p = decodeJson(s) as InvoicePayload & Record<string, string>;
     if (p.v !== 1 || !/^0x[0-9a-fA-F]{64}$/.test(p.salt) || !/^0x[0-9a-fA-F]+$/.test(p.sig)) return null;
     BigInt(p.tokenId); BigInt(p.amount); BigInt(p.expiry);
     if (typeof p.memo !== "string" || p.memo.length > 200) return null;

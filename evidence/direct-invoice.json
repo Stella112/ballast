@@ -1,0 +1,4 @@
+{"types":{"EIP712Domain":[{"name":"name","type":"string"},{"name":"version","type":"string"},{"name":"chainId","type":"uint256"},{"name":"verifyingContract","type":"address"}],
+"DirectInvoice":[{"name":"merchant","type":"address"},{"name":"invoiceId","type":"bytes32"},{"name":"amount","type":"uint256"},{"name":"repayAmount","type":"uint256"},{"name":"expiry","type":"uint256"}]},
+"primaryType":"DirectInvoice","domain":{"name":"BallastRepaymentAdapter","version":"1","chainId":31611,"verifyingContract":"0x096f8C705fce216bdBAEc7f86022117682A9f7DC"},
+"message":{"merchant":"0xCBCd26d717CEe0305b92FDC1E50A398608A4d857","invoiceId":"0x709aaffb6ecd931bbda2fed2bd32444b65389e30974af51dc0617d90ad70a7a3","amount":"50000000000000000000","repayAmount":"10000000000000000000","expiry":1794620092}}

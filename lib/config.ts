@@ -6,11 +6,12 @@ export const cfg = deployments as unknown as {
   chainId: number;
   rpcUrl: string;
   explorer: string;
-  mezo: Record<"MUSD" | "BorrowerOperations" | "TroveManager" | "SortedTroves" | "HintHelpers" | "PriceFeed", Address>;
+  mezo: Record<"MUSD" | "BorrowerOperations" | "BorrowerOperationsSignatures" | "TroveManager" | "SortedTroves" | "HintHelpers" | "PriceFeed", Address>;
   ballast: {
     BallastRouter: Address;
     BallastAccountNFT: Address;
     BallastFactory: Address;
+    BallastRepaymentAdapter: Address;
     BallastAccount?: Address;
     tokenId?: number;
   };

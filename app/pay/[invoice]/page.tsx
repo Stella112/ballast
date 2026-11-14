@@ -9,16 +9,19 @@ import { TxButton, TxStatus, useTx } from "@/components/tx";
 import { BallastAccountAbi, BallastFactoryAbi, BallastRouterAbi, MUSDAbi, TroveManagerAbi, SortedTrovesAbi } from "@/lib/abis";
 import { cfg } from "@/lib/config";
 import { decodeInvoice, invoiceDomain, invoiceIdOf, invoiceTypes } from "@/lib/invoices/invoice";
+import { decodeDirectInvoice } from "@/lib/invoices/direct";
+import { PayDirect } from "@/components/pay-direct";
 import { computeHints } from "@/lib/mezo/hints";
 import { principalAfterRepay } from "@/lib/radar/math";
 
 export default function PayPage({ params }: { params: Promise<{ invoice: string }> }) {
   const { invoice } = use(params);
   const inv = decodeInvoice(invoice);
+  const direct = inv ? null : decodeDirectInvoice(invoice);
   return (
     <div className="mx-auto max-w-2xl space-y-6">
       <h1 className="text-2xl font-semibold tracking-tight">Pay invoice</h1>
-      {!inv ? <Notice tone="bad" title="Invalid invoice link">This link could not be decoded. Ask the merchant for a new one.</Notice> : <PayInner inv={inv} />}
+      {inv ? <PayInner inv={inv} /> : direct ? <PayDirect inv={direct} /> : <Notice tone="bad" title="Invalid invoice link">This link could not be decoded. Ask the merchant for a new one.</Notice>}
     </div>
   );
 }
