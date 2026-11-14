@@ -50,10 +50,12 @@ function Inner({ invoice, sig, acct, repayShare, blocked, rcv, wusdc }: Paramete
 
   // USDC to send: smallest of a few candidates the real Mezo pool turns into ≥ invoice amount (+0.3% margin).
   const [usdc, setUsdc] = useState<bigint>();
+  const [noQuote, setNoQuote] = useState(false);
   useEffect(() => {
     let off = false;
     (async () => {
       if (!mezoClient) return;
+      setNoQuote(false);
       for (const bump of [30n, 100n, 300n, 1000n]) {
         const x = usdcFor(invoice.amount, bump);
         try {
@@ -61,10 +63,12 @@ function Inner({ invoice, sig, acct, repayShare, blocked, rcv, wusdc }: Paramete
           if (out[out.length - 1] >= invoice.amount) { if (!off) setUsdc(x); return; }
         } catch { /* pool read failed; try next */ }
       }
+      if (!off) setNoQuote(true); // no candidate covers the invoice: pool too small (or unreadable)
     })();
     return () => { off = true; };
   }, [mezoClient, invoice.amount, wusdc]);
 
+  const poolMusd = useReadContract({ address: cfg.mezo.MUSD, abi: MUSDAbi, functionName: "balanceOf", args: [cfg.ballast.UsdcMusdPool ?? ZERO], query: { enabled: !!cfg.ballast.UsdcMusdPool, refetchInterval: 30_000 } });
   const usdcBal = useReadContract({ chainId: baseSepoliaChain.id, address: cfg.baseSepolia.USDC, abi: MUSDAbi, functionName: "balanceOf", args: [address ?? ZERO], query: { enabled: !!address, refetchInterval: 15_000 } });
   const usdcAllow = useReadContract({ chainId: baseSepoliaChain.id, address: cfg.baseSepolia.USDC, abi: MUSDAbi, functionName: "allowance", args: [address ?? ZERO, cfg.baseSepolia.WormholeTokenBridge], query: { enabled: !!address, refetchInterval: 15_000 } });
   const fee = useReadContract({ chainId: baseSepoliaChain.id, address: cfg.baseSepolia.WormholeCore, abi: WormholeCoreAbi, functionName: "messageFee" });
@@ -163,10 +167,15 @@ function Inner({ invoice, sig, acct, repayShare, blocked, rcv, wusdc }: Paramete
         If anything fails (expired, already paid, slippage), the MUSD or USDC is sent to your address on Mezo instead.
       </p>
       <div className="mt-4 grid grid-cols-2 gap-4 md:grid-cols-3">
-        <Stat label="You send" value={usdc !== undefined ? `${fmt(usdc, 6, 2)} USDC` : "Quoting…"} sub={`covers ${fmt(invoice.amount)} MUSD; change returned on Mezo`} />
+        <Stat label="You send" value={usdc !== undefined ? `${fmt(usdc, 6, 2)} USDC` : noQuote ? "Unavailable" : "Quoting…"} sub={`covers ${fmt(invoice.amount)} MUSD; change returned on Mezo`} />
         <Stat label="Your USDC (Base Sepolia)" value={fmt(usdcBal.data, 6, 2)} />
         <Stat label="Arrives at" value="Mezo, same wallet address" sub="for change or refunds" />
       </div>
+      {noQuote && usdc === undefined && (
+        <div className="mt-3"><Notice tone="warn" title="Too large for the testnet USDC/MUSD pool">
+          The pool currently holds {poolMusd.data !== undefined ? `${fmt(poolMusd.data)} MUSD` : "too little MUSD"}, so it cannot turn USDC into {fmt(invoice.amount)} MUSD. Pay this invoice in MUSD on Mezo above, or ask the merchant for a smaller invoice to pay from Base.
+        </Notice></div>
+      )}
       {!address && <div className="mt-3"><Notice tone="neutral">Connect a wallet to pay from Base Sepolia.</Notice></div>}
       {address && !prog.baseTx && (
         <div className="mt-4 flex flex-wrap gap-2">

@@ -118,3 +118,19 @@ Changes: `BallastRouter.pay(accountId, amount, reference)` with ratio before/aft
 - Cap (repayment stops at Mezo's minimum debt, excess to owner): proven in `test_fork_repayCappedAtMezoMinimumDebt_excessToOwner` against live Mezo state, not run live so the demo loan keeps room to repay.
 - Browser (no wallet): `/pay/a/1` shows the live split 75 / 5 / 20 and ratio 140.22%; `/app/hedge` shows the live market and the card labelled "SIMULATED — not a real price move"; no console errors.
 - Not verified: the new pages with a browser wallet extension.
+
+## Full re-check against the owner's description (2026-11-14, 22:30–22:55 UTC)
+Commands: `MEZO_TESTNET_RPC_URL=https://rpc.test.mezo.org forge test` → **46 passed, 0 failed** (20 unit/fuzz + 26 on live Mezo state: account, adapter, bridge receiver, hedge); `pnpm test` → 12 passed; `pnpm typecheck` clean; `pnpm build` → 13 routes. Live site https://ballast-tawny.vercel.app: every route 200, `/api/radar` 200.
+
+Fresh live transactions (all status 1):
+| What | Tx | Result |
+|---|---|---|
+| Base Sepolia USDC → Mezo invoice settled (second Base payment) | [0x6ff89726…86e0](https://explorer.test.mezo.org/tx/0x6ff89726e829df38104f2e6f827c0d79e0f938d6d576c4a2bfc32ea36d0a86e0) (block 16783970), Base tx [0x8e4222d6…3f46](https://base-sepolia.blockscout.com/tx/0x8e4222d6c97b1d101f6098547d1b70f63b2047943ee31bff8145afbe39083f46) | owner payout +1.5 MUSD, receiver left holding 0 |
+| USDC/MUSD pool rebalanced (payer swaps 2 MUSD in) | [0x4bc31d04…f22d](https://explorer.test.mezo.org/tx/0x4bc31d04f4cd60156530b762fc913ec13a271e39d322b323027e43094a33f22d) | reserves 5.99/10.03 → 7.99 MUSD / 8.01 USDC |
+| `router.pay(1, 10 MUSD, "audit-2026-11-14")` by the payer | [0xdf63e235…5f32](https://explorer.test.mezo.org/tx/0xdf63e235ad24c277d0f8947ca631b2435a60f4c2e0b35e9d8e120b8d5fda5f32) (block 16784069) | `Payment`: 7.5 owner / 0.5 reserve / 2.0 repaid; ICR 140.88% → 141.01%; 3.78M gas without hints |
+| Keeper: payer sends 4 MUSD to the account, then the payer (not the owner) calls `processIncome` | [0x741e7e32…e937](https://explorer.test.mezo.org/tx/0x741e7e32d66fe0adcd9e458f4c7e5a000d9577b7d068b5c48299a42f6e59e937) (block 16784122) | `PaymentApplied` source = payer: 3.0 owner / 0.2 reserve / 0.8 repaid; ICR 140.83% → 140.88% |
+| Floor cap: policy 60/0 ([setPolicy](https://explorer.test.mezo.org/tx/0xd32d39455f8d89b753c4d90ad816ea47efeccc5acf97b04258d6130f6b59d448)), then `pay(300 MUSD)` | [0xb52b8693…98a0](https://explorer.test.mezo.org/tx/0xb52b86935a203d3fe55ed858d69bbefedb655703b43a1539e2108789dac098a0) (block 16784229) | quote before: repay 168.80 (cap), owner 131.20. `Payment`: 131.1978 owner / 168.8022 repaid; principal after = **2000.000000000000000000**; ICR 140.97% → 152.86% |
+| Restore demo headroom: controller borrows 100 MUSD; policy back to 20/5/75 | [borrow](https://explorer.test.mezo.org/tx/0x0e02fd2062bbea0d371e98a5436321a9c581b7c527bfa122b38569e18eeaa794), [setPolicy](https://explorer.test.mezo.org/tx/0xc9c0c46839e9a12a93322f94d5d03410ca56fd92d451f1af1e9613e8e7371d8c) | maxRepayable 100.10, ICR 144.94% (BTC 63,708 on the oracle), quoteSplit(100) = 75/5/20 |
+Hedge open/close was last run live at 22:03–22:05 UTC (see the hedge section); not repeated (each run costs ~0.8 MUSD in swap fees).
+
+Fix from this check: when an invoice is larger than the USDC/MUSD pool can convert, the Base card said "Quoting…" forever; it now says the pool size and to pay in MUSD on Mezo or use a smaller invoice.
