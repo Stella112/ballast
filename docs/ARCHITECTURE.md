@@ -37,3 +37,11 @@
 - `contracts/test/BallastFork.t.sol` — 4 tests against live Mezo testnet state (oracle precompile fed with the live price; see VERIFICATION.md).
 - `lib/radar/math.test.ts` — Radar math.
 - `scripts/live.sh` — guarded live runbook producing `evidence/`.
+
+## v2 (2026-11-14): what changed
+- **BallastAccount**: tracks `ownerMUSD` (borrowed/deposited, withdrawable) separately from `hedgeReserve`; `pendingIncome()` is everything else. `quoteSplit(amount)` = policy percentages → cash buffer (`minCash`) → cap at `maxRepayable()` with the excess to the owner. Entry points: `applyPayment` (router only) and `processIncome` (anyone, keeper). Both emit `PaymentApplied(source, ref, amount, toOwner, toReserve, repaid, icrBefore, icrAfter)`; ICR = `TroveManager.getCurrentICR(account, PriceFeed.fetchPrice())`, 0 if unavailable.
+- **BallastRouter**: `pay(accountId, amount, reference)` and `payWithHints(…, upperHint, lowerHint)` for any app; `payInvoice` unchanged for signed single-use invoices. All emit `Payment(accountId, reference, payer, amount, toOwner, toReserve, repaid, icrBefore, icrAfter)`.
+- **BallastAccountNFT**: transferable at any time to code-less addresses; calls `account.controllerChanged(to)`.
+- **BallastHedge / BallastHedgeFactory**: one module per account, controlled by the NFT holder. `open` = supplyCollateral + borrow on Morpho Blue, sell BTC on Mezo Pools; `close(musdIn, minBtcOut, topUp)` = buy back, repay all, withdraw collateral; `sendToAccount` = `account.depositMUSD` (credited as owner funds).
+- **BallastMezoOracle**: Morpho price = `1e54 / PriceFeed.fetchPrice()` (MUSD collateral quoted in 18-decimal BTC).
+- **BallastBridgeReceiver**: `settle(vaa, hints)` = Wormhole `completeTransferWithPayload` → swap wrapped USDC → MUSD (stable pool) → `router.payInvoice`; refunds on any failure.

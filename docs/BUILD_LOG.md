@@ -36,3 +36,11 @@
 - Live: adapter deployed (block 16764880, verified). First minimum-size wallet trove had only ~1.8 MUSD repayable above the 2,000 MUSD floor; borrowed 100 more to create headroom. Two live invoice payments with exact −10 / −2 debt changes.
 - Base: BLOCKED (Mezo MUSD NTT documented for mainnet only). Morpho: BLOCKED (no testnet market; mainnet market is BTC collateral / mUSDC loan). Both shown truthfully in the app, as the description requires.
 - `docs/PROJECT_DESCRIPTION.md` now holds the owner's description verbatim plus an implementation-status/evidence table. Only stack deviation: UI is hand-built on Tailwind, not shadcn/ui.
+
+
+## 2026-11-14 (evening) — v2 to match the owner's final description
+- New description changed the contract surface: router `pay(accountId, amount, reference)`, ratio before/after in events, permissionless keeper, repayment cap with excess to owner, minimum cash buffer, transferable NFT (owner decision; replaces the earlier lock while a loan is open), presets 20/5/75, 60/40, 10/90.
+- Account now tracks `ownerMUSD` so that MUSD arriving directly is distinguishable from the owner's borrowed funds; `processIncome` applies the policy to the difference. NFT calls `controllerChanged` on transfer to clear a stale payout address.
+- Redeployed Factory/NFT/Router/Account + HedgeFactory + BridgeReceiver; adapter, Morpho stack and pools unchanged. Closed the v1 loan and reopened from v2 with the same 0.048 BTC.
+- Two failed transactions, both gas limits I set too low (closeTrove estimate, `pay()` without hints ≈ 4.08M gas). Root cause confirmed by simulation before retrying.
+- Base → Mezo: MUSD NTT still mainnet-only, so the testnet route remains USDC over the Wormhole token bridge + Ballast-seeded pool. Recorded as a difference in docs/PROJECT_DESCRIPTION.md.

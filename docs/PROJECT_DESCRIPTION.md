@@ -1,340 +1,197 @@
-# BALLAST — The Cash-Flow Autopilot for Bitcoin-Backed Loans
+# Ballast — Full Project Description
 
-> This is the owner's project description, verbatim. The section **Implementation status and evidence** at the end maps each part to what is deployed on Mezo testnet, with transaction proof.
+14 Nov 2026 · @maris
+
+> The description below is the owner's text. The section **Implementation status and evidence** at the end maps each part to what runs on testnet, with transaction links, and lists the places where the testnet build differs from the text.
 >
 > **Live app:** https://ballast-tawny.vercel.app · **Code:** https://github.com/Stella112/ballast
 
-**Tagline:** Protect your Bitcoin. Strengthen your loan.
+## Summary
 
-**One-liner:** Ballast turns incoming MUSD payments into automatic debt repayment, helping Bitcoin-backed borrowers improve their loan health, manage redemption exposure, and protect their BTC without selling it.
+Ballast is the cash-flow autopilot for Bitcoin-backed loans: every MUSD payment a borrower receives can make their Mezo loan safer.
 
-- **Blockchain:** Mezo Testnet, with planned Base integration
-- **Primary Track:** DeFi — Borrowing, Lending & Risk Management
-- **Secondary Track:** Access & Distribution for MUSD
-- **Core Assets:** BTC, MUSD, and USDC for cross-chain payments
+A Ballast Account is an NFT-controlled smart account that owns a real Mezo MUSD loan. Incoming payments, on Mezo or from Base, are split by the owner's policy: part repays the loan, part can fund an optional BTC hedge, and the rest goes to the owner. A live redemption-line simulator shows how each repayment moves the loan further from redemption and liquidation.
 
-## The Problem
+| Field | Answer |
+|---|---|
+| Project name | Ballast |
+| Category | Bitcoin-backed loan automation |
+| TL;DR | Ballast routes MUSD income into automatic repayment of a Mezo loan, so borrowers move back in the redemption line without lifting a finger. |
+| Tracks | Track 1: DeFi (primary), Track 2: Access & Distribution |
+| Chains | Mezo testnet, Base Sepolia |
+| Status | New project built during the hackathon |
+| Readiness | Testnet deployment |
+| Submission deadline | 15 Nov 2026, 16:00 Lagos time |
 
-Mezo allows Bitcoin holders to borrow MUSD against their BTC without selling it. This unlocks liquidity while allowing borrowers to maintain their Bitcoin exposure.
+## The problem
 
-But borrowing against Bitcoin creates two important risks.
+A Mezo borrower can lose their position in two ways, and today they guard against both by hand.
 
-**1. Redemption risk**
+- **Redemption.** Any MUSD holder can swap MUSD with the protocol for BTC at $1, minus a fee of 0.75% (Mezo docs). That BTC is taken from the loans with the lowest collateral ratio first, even healthy ones. Another buildathon team counted 1,310 redemption hits against 28 liquidations on mainnet (Frontline; their figure, not verified by us).
+- **Liquidation.** If the collateral ratio falls below 110%, the loan is closed and the collateral is lost.
 
-MUSD holders can redeem their stablecoins for BTC through Mezo's redemption mechanism. The protocol prioritizes eligible borrowing positions with the lowest collateral ratios.
+Meanwhile, the money a borrower earns never touches the loan unless they move it themselves.
 
-This means a borrower can lose part of their BTC collateral through redemption even if their loan is not eligible for liquidation.
+## Who it's for
 
-Borrowers who want to preserve their Bitcoin exposure must actively manage their collateral ratios and redemption positions.
+Businesses and freelancers who hold BTC, borrow MUSD against it on Mezo, and receive regular payments.
 
-**2. Liquidation risk**
+- **Primary users:** BTC-holding merchants, freelancers and small companies paid in MUSD or USDC.
+- **Integrators:** MUSD payment apps (invoicing, checkout, subscriptions) that want to offer "put part of your earnings toward your loan".
+- **Experience level:** comfortable with a crypto wallet; no DeFi expertise needed once the account is set up.
+- **Devices and region:** desktop and mobile web, global (subject to the buildathon's excluded jurisdictions).
 
-When Bitcoin's price falls, the dollar value of the BTC securing a loan decreases while the MUSD debt remains outstanding.
+## How it works
 
-If the collateral ratio falls below the protocol's liquidation threshold, the borrower risks liquidation.
+One account holds the loan; a policy decides where every incoming payment goes.
 
-Today, borrowers must monitor these risks, calculate repayments, and move funds manually.
+1. **Open a Ballast Account.** A contract that opens and owns a real Mezo MUSD loan, minted as an NFT. Whoever holds the NFT controls the account, so it can be transferred or sold whole.
+2. **Choose a goal.** Each preset sets a default split the owner can adjust:
+   - Keep my BTC: 20% repay, 5% hedge, 75% to owner.
+   - Get out of debt: 60% repay, 40% to owner.
+   - Keep cash available: 10% repay, 90% to owner, with a minimum cash buffer.
+3. **Get paid anywhere.** Payers send MUSD on Mezo, or MUSD from Base through the Wormhole bridge that MUSD already uses.
+4. **The router splits each payment.** Repay share, hedge share and owner share, emitted on-chain with the before and after collateral ratio.
+5. **Repayment runs automatically.** Because the account owns the loan, no signature is needed per payment. A keeper can trigger the policy but can never redirect funds. Existing loans that can't move in use Mezo's signed one-off repayment instead.
+6. **Optional hedge.** The account can open a small BTC short that pays toward the loan if BTC falls (see Hedge module).
 
-Meanwhile, businesses and freelancers may receive MUSD income without having an automated way to use part of those earnings to strengthen their outstanding loans.
+Repayments stop at Mezo's minimum debt (about 2,000 MUSD); anything above that cap goes to the owner.
 
-The missing infrastructure is a connection between incoming cash flow and the health of a Bitcoin-backed loan.
+Payments from Mezo go straight to the router; payments from Base cross the Wormhole bridge first. The router then sends each share to the loan, the hedge reserve or the owner.
 
-## The Solution
+## Signature feature: the redemption-line simulator
 
-Ballast is a programmable loan-management and payment infrastructure layer built directly on Mezo.
+It turns "am I safe?" into numbers read live from Mezo's own sorted list of loans.
 
-It connects three things that are normally separate:
+| Metric | What the borrower learns |
+|---|---|
+| Position in the redemption line | Where the loan sits, counting from the next one to be redeemed |
+| MUSD ahead of you | Total debt in loans that would be redeemed first; a smaller redemption cannot reach you |
+| MUSD to pass the next 10 or 50 loans | How much repayment moves the loan back |
+| Liquidation price | The BTC price at which the ratio hits 110% |
+| Largest valid repayment now | The maximum allowed before hitting the minimum debt |
+| Before and after | What each real repayment changed, with the transaction link |
 
-- Money borrowers receive.
-- The health of their Bitcoin-backed borrowing positions.
-- Automated financial actions that reduce debt and manage risk.
+The position is a snapshot, not a guarantee: the order changes as BTC moves and other borrowers act.
 
-Instead of requiring borrowers to constantly monitor their loans, Ballast enables them to define rules that automatically allocate part of their incoming MUSD payments toward debt repayment.
+## Pay from Base and the router
 
-It also introduces a redemption-line simulator that shows how much MUSD a borrower needs to repay to improve their position relative to other borrowers.
+Payers on Base can pay a Mezo borrower directly, and any MUSD app can plug in with one call.
 
-Ballast is designed around five interconnected components.
+**Pay from Base**
 
-### 1. Ballast Account — An NFT-Controlled Bitcoin Loan
+- A payer on Base sends MUSD through Ballast's Base gateway.
+- The gateway uses Wormhole Native Token Transfers, the bridge MUSD already uses between Mezo, Ethereum and Base, with the Ballast Account itself as the recipient on Mezo.
+- When the MUSD lands, the keeper applies the account's policy.
+- The demo runs on Base Sepolia to Mezo testnet. Paying with USDC (swapped to MUSD on Base) is the mainnet design and is out of scope for the testnet build unless a MUSD/USDC test pool exists.
 
-Users create a Ballast Account, a smart contract capable of owning and managing a real borrowing position on Mezo.
+**Router for other apps**
 
-The account holds the borrowing position, while an NFT identifies the wallet authorized to control it.
+- `BallastRouter.pay(accountId, amount, reference)` pulls MUSD, applies the policy and emits a payment event.
+- Invoicing, checkout or subscription apps can offer borrowers "put part of your earnings toward your loan" without building any lending logic.
+- The demo includes one integration: a shareable pay link for each account.
 
-The account owner can:
+## Hedge module (optional)
 
-- Deposit BTC collateral.
-- Open a Mezo loan and borrow MUSD.
-- Withdraw available borrowed funds.
-- Configure automatic repayment policies.
-- Receive MUSD through payment integrations.
-- Monitor debt, collateral, and redemption exposure.
-- Manage permitted loan operations.
-- Close the position when applicable requirements are satisfied.
+A small BTC short inside the account that pays toward the loan when BTC falls, which is exactly when the loan needs help.
 
-Because the smart contract owns the underlying loan, it can execute authorized repayment rules without requiring the user to sign every individual repayment.
+1. The account posts MUSD as collateral in a Morpho Blue market on Mezo, the lending system behind Mezo's own USDC Lending Vault (Mezo docs).
+2. It borrows a small amount of BTC and sells it for MUSD on Mezo Pools.
+3. If BTC falls, buying the BTC back costs less; on close, the difference goes toward the loan.
+4. If BTC rises, the hedge loses a little, while the BTC backing the loan gains more.
 
-The account enforces permissions on-chain. The payment router cannot arbitrarily withdraw BTC collateral or redirect borrowed funds.
+For a borrower this is protection, not a bet. Borrowing stays small so the hedge itself sits far from liquidation. A BTC price drop cannot be caused on testnet, so the drop scenario in the demo is clearly labelled SIMULATED; opening and closing the hedge are real transactions.
 
-The initial implementation can restrict NFT transfers while debt remains outstanding to avoid transferring control of an active borrowing obligation without adequate safeguards.
+## Mezo integration and what's new
 
-Existing Mezo borrowers whose loans cannot be moved into a Ballast Account can use a separate signed repayment flow.
+Ballast touches five pieces of Mezo, and ties incoming income to measurable redemption safety, which no entry we found does.
 
-### 2. Payback — Automatic Debt Repayment From Income
+| Mezo piece | How Ballast uses it |
+|---|---|
+| MUSD loan contracts | Open, own, repay and close a real loan from the account |
+| Sorted loan list and redemption order | Read live for the simulator |
+| Mezo Pools | Swap between MUSD and BTC for the hedge |
+| Wormhole bridging for MUSD | Payments arriving from Base |
+| Morpho Blue on Mezo | The hedge's MUSD-collateral, BTC-loan market |
 
-Payback is Ballast's core feature.
+**Judging criteria fit**
 
-Borrowers choose how incoming MUSD payments should be allocated between repayment, savings reserved for future protection, and spendable income.
+- Mezo Integration (30%): real loans, the redemption queue, pools, bridge and Morpho; no wrapper around MUSD.
+- Product & Business Viability (30%): solves the redemption pain Mezo itself documents, and gives MUSD payment apps a reason to integrate.
+- Technical Implementation (20%): NFT-controlled accounts, permissionless keeper that cannot redirect funds, tested contracts.
+- User Experience (10%): goal presets instead of DeFi settings; one screen shows safety in plain numbers.
+- Submission Materials (10%): every demo step backed by a transaction link.
 
-For example, a borrower receives a 500 MUSD invoice payment. Their policy might allocate:
+**What's different from other entries**
 
-- 20% — 100 MUSD: Repay their Mezo loan.
-- 5% — 25 MUSD: Reserve funds for optional BTC downside protection.
-- 75% — 375 MUSD: Transfer to their spendable wallet.
+- Cermin, Bulwark and Lifeline react when BTC falls; Ballast acts on income, before trouble.
+- Frontline and Keel build new markets to dodge redemptions; Ballast works with Mezo's existing loans.
+- Ledger and Mezout handle invoices and checkout; Ballast is the layer those apps can route repayments through.
 
-When a payment is made through the Ballast Router, the smart contracts enforce the allocation and attempt the authorized repayment.
+## Demo, limits, blockers and roadmap
 
-After the transaction, Ballast reads the borrower's actual position from Mezo and displays the new debt, collateral ratio, and redemption-order position.
+The demo shows one real payment travelling from Base to a real Mezo loan, with every step linked on-chain.
 
-Repayments must respect minimum outstanding debt, protocol restrictions, and the borrower's configured limits.
+**Two-minute demo**
 
-Users can choose between three simple goals:
+1. 0:00 The problem: the redemption line.
+2. 0:20 Mint a Ballast Account and open a loan.
+3. 0:40 A payment arrives, splits, repays; the simulator shows the loan moving back.
+4. 1:10 The same from Base Sepolia.
+5. 1:30 Open and close the hedge, then a labelled SIMULATED BTC drop.
+6. 1:50 The router integration and roadmap.
 
-- **Keep My BTC:** Prioritize reducing exposure to redemptions while preserving a chosen amount of spendable income.
-- **Get Out of Debt:** Direct a larger share of eligible earnings toward reducing the outstanding MUSD principal.
-- **Keep Cash Available:** Maintain a higher spendable balance while making smaller repayments when valid.
+**Limits stated openly**
 
-These goals provide starting policies that users can customize.
+- Testnet only, unaudited.
+- Mezo's minimum loan is about 2,000 MUSD.
+- The hedge reduces risk but cannot remove it.
+- Redemption position is a snapshot, not a guarantee.
+- Demand is unproven: we don't yet know how many borrowers receive regular MUSD income.
 
-### 3. Redemption Radar — See Your Place in the Redemption Line
+**Blockers tested first, in order**
 
-Redemption Radar is Ballast's signature intelligence feature.
+- [x] A contract can open and own a Mezo loan on testnet.
+- [ ] The Base to Mezo bridge works for testnet MUSD. **Result: no.** Mezo lists its MUSD bridge (Wormhole NTT) contracts for mainnet only. What does work on testnet is Wormhole's token bridge from Base Sepolia, so the testnet build bridges USDC and swaps it to MUSD on Mezo (see below).
+- [ ] Morpho on Mezo testnet accepts BTC as the borrowed asset. **Result: Morpho is not deployed on Mezo testnet.** Ballast deployed the unmodified Morpho Blue v1.0.0 itself; the market borrows Mezo's own BTC token directly, so no wrapped-BTC token was needed.
+- [x] Our own BTC/MUSD price feed works in Morpho's format.
 
-Mezo's redemption mechanism uses collateral-ratio ordering to determine which eligible loans are reached first.
+**Next three milestones**
 
-Ballast reads the real on-chain borrowing positions and visualizes where the user currently sits in that ordering.
+| Milestone | Target |
+|---|---|
+| Audit-lite review and capped mainnet launch | Q1 2027 |
+| Invoices as NFTs that feed the account, plus an SDK for MUSD payment apps | Q1 2027 |
+| Vault for BTC lenders on the hedge side, with a Mezo Earn gauge | Q2 2027 |
 
-Rather than providing generic risk warnings, Redemption Radar answers actionable questions:
-
-- Where is my loan in the current redemption ordering?
-- Which positions are immediately ahead of mine?
-- How much MUSD would I need to repay to move above the next 10 or 50 positions?
-- What would my collateral ratio become after that repayment?
-- How much can I repay without violating the protocol's minimum-debt rules?
-- What happens to my position if BTC falls by 10%, 20%, or 30%?
-- How did my position actually change after my latest repayment?
-
-The simulator calculates projected results using current protocol data.
-
-When a real repayment executes, it refreshes the on-chain state and shows verified before-and-after results, including transaction evidence.
-
-A borrower might see: *"Repaying 45 MUSD would move your position above five other loans in the current redemption ordering."*
-
-This turns an otherwise technical DeFi metric into a specific financial action.
-
-The interface distinguishes between live on-chain facts and projections. Redemption rankings change over time, and improving a position never guarantees protection from future redemptions.
-
-### 4. Pay From Anywhere — Cross-Chain MUSD Distribution
-
-Ballast aims to make debt repayment possible wherever users earn money, rather than restricting payments to the Mezo application itself.
-
-The initial supported flow uses native testnet MUSD payments on Mezo.
-
-Ballast also targets a cross-chain payment experience in which a customer can pay USDC on Base and the recipient receives MUSD on Mezo.
-
-The intended flow is:
-
-1. A merchant creates a Ballast payment request.
-2. A customer pays USDC on Base.
-3. The payment is converted into the appropriate bridgeable asset.
-4. Value moves to Mezo through a verified cross-chain transfer mechanism.
-5. The recipient receives genuine MUSD on Mezo.
-6. The Ballast Router applies the recipient's repayment policy.
-7. The borrower receives spendable income while part of the payment reduces their actual loan debt.
-
-Mezo uses Wormhole Native Token Transfers infrastructure for supported MUSD transfers between chains.
-
-However, the exact Base Sepolia-to-Mezo-testnet route, USDC conversion, token availability, and settlement process must be verified before implementation is considered complete.
-
-Ballast will not present a simulated bridge or an independently funded relayer as a successful native Wormhole transfer.
-
-The objective is to make MUSD more useful by allowing borrowers to earn from customers beyond Mezo while managing their loan obligations on Mezo.
-
-### 5. Hedge — Optional BTC Downside Protection
-
-Payback strengthens loans when borrowers receive income.
-
-Hedge is designed to provide additional protection when BTC falls.
-
-The proposed hedge allows a Ballast Account to allocate MUSD toward a BTC downside position through a compatible lending or derivatives mechanism.
-
-One possible implementation uses Morpho:
-
-1. The account supplies eligible MUSD collateral.
-2. It borrows a limited quantity of tokenized BTC.
-3. It sells the borrowed BTC for MUSD.
-4. If BTC falls, the account can potentially repurchase the required BTC at a lower price.
-5. After repaying the BTC loan and associated costs, any remaining profit can be directed toward reducing the borrower's Mezo debt.
-
-If BTC rises, the hedge can lose money, incur additional costs, or be liquidated independently of the main Mezo loan.
-
-This means Hedge reduces selected price exposure rather than guaranteeing safety.
-
-The Morpho integration is conditional on verifying a compatible funded BTC-borrowing market, supported collateral, pricing and execution infrastructure on the relevant network.
-
-If those requirements are not met during the hackathon, Ballast will present Hedge as a clearly labeled simulation and future integration, not an operational live short.
-
-An alternative future implementation could use fully collateralized downside-protection contracts with explicitly defined premiums, payouts and expiry conditions.
-
-### 6. Ballast Router — Infrastructure for Other Applications
-
-Ballast is not intended to operate only as a standalone dashboard.
-
-Its payment router can become reusable infrastructure for other MUSD applications.
-
-Developers can integrate Ballast into:
-
-- Invoice and payment-link platforms.
-- Merchant checkout systems.
-- Subscription billing applications.
-- Freelancer payment tools.
-- Treasury-management systems.
-- MUSD-native marketplaces.
-
-An external application can offer its users the ability to automatically direct a portion of eligible payments toward their Bitcoin-backed debt.
-
-For example, an invoice platform could add: *"Put 20% of every invoice payment toward my Mezo loan."*
-
-The external application submits the payment through the Ballast Router, which enforces the borrower's configured policy.
-
-Ballast's initial developer integration will be a working MUSD invoice-payment link. Another wallet can pay an invoice, and the payment will trigger a real split and authorized repayment.
-
-This creates a path for Ballast to become shared MUSD infrastructure rather than another isolated DeFi application.
-
-## Technical Architecture
-
-**Smart contracts**
-
-- `BallastFactory`: Deploys account contracts and coordinates account creation.
-- `BallastAccount`: Owns the Mezo loan and applies borrower-authorized financial actions.
-- `BallastAccountNFT`: Represents account control and enforces transfer restrictions.
-- `BallastRouter`: Receives MUSD payments, executes splits and initiates repayments.
-- `BallastRepaymentAdapter`: Integrates account repayments and signed repayments with Mezo's lending contracts.
-- Optional Hedge integration module, deployed only after the required market infrastructure is verified.
-
-**Mezo integrations**
-
-- BorrowerOperations for opening and repaying loans.
-- TroveManager for debt and collateral data.
-- SortedTroves for redemption ordering.
-- HintHelpers for valid trove reordering.
-- MUSD ERC-20 for payments and repayments.
-- Mezo pricing infrastructure for loan-health calculations.
-- Wormhole infrastructure for verified cross-chain transfers.
-- Morpho where supported markets and liquidity are available.
-
-**Application stack**
-
-- Next.js and TypeScript.
-- Tailwind CSS and shadcn/ui.
-- Solidity and Foundry.
-- wagmi and viem.
-- Mezo testnet RPC and blockchain explorer.
-- Vercel hosting.
-- An optional backend/indexer for efficient reading of borrowing-position data and transaction history.
-
-All financial actions must be authorized, all transaction claims verifiable, and all failures handled without misrepresenting the state of user funds.
-
-## Why Ballast Is Different
-
-Ballast does not claim to be the first protocol to automate Mezo repayments or protect borrowers from liquidation.
-
-Existing applications already provide repayment automation, loan-health monitoring and liquidation-related tools.
-
-Ballast's differentiation is the combination of:
-
-- **Income-driven repayment:** Cash flow from real MUSD payments can directly reduce an existing Bitcoin-backed debt position.
-- **Redemption-aware decision-making:** Borrowers can see the measurable effect of repayments on their relative exposure to Mezo's redemption process.
-- **Contract-controlled automation:** New Ballast accounts can own their Mezo loans, making constrained recurring repayment policies possible without requiring a signature for every payment.
-- **Cross-application distribution:** Other MUSD products can use the router to offer debt repayment as part of their payment experience.
-- **Optional downside hedging:** Future or verified live hedge integrations can connect BTC price-risk management to the same loan.
-
-The product's core value is not another borrowing dashboard. It is the connection between earning MUSD, reducing debt, and understanding the resulting improvement in borrowing-position health.
-
-## Product Viability
-
-Ballast initially targets Mezo borrowers who receive recurring MUSD income, especially merchants, freelancers and small businesses.
-
-Its growth strategy is based on integration with applications that already process MUSD payments.
-
-A potential business model includes disclosed routing fees, premium integrations for payment applications, and optional protection-service fees.
-
-The early implementation focuses on proving technical viability and borrower usefulness.
-
-Demand remains unvalidated. Ballast will need to determine how many Mezo borrowers receive sufficient recurring MUSD income and whether they prefer automated repayment over manually controlling their debt.
-
-## Security and Limitations
-
-Ballast's initial deployment is on Mezo testnet and is not audited.
-
-The product cannot guarantee that borrowers will avoid redemption or liquidation.
-
-Automatic repayments are subject to borrower policies, available funds, contract authorization, gas availability, and Mezo's protocol restrictions.
-
-An NFT-controlled loan account carries security and ownership risks, particularly if transfers are enabled while debt exists.
-
-Cross-chain transactions introduce bridge and settlement risks.
-
-BTC hedge positions may lose money or be liquidated.
-
-All simulated outcomes must be distinguished from live on-chain transactions, and no integration is considered operational without successful testnet execution.
-
-## Roadmap
-
-**Phase 1 — Mezo Buildathon:** Deliver NFT-controlled loan accounts, automatic MUSD repayment, Redemption Radar, a real invoice integration, and verifiable testnet transactions. Investigate and implement Base payments and the Morpho hedge only where their required infrastructure can be proven.
-
-**Phase 2 — Ecosystem Integration:** Develop a payment-router SDK, expand supported MUSD payment sources, improve repayment automation and evaluate account transfer mechanisms.
-
-**Phase 3 — Risk Protection:** Introduce funded downside protection, expanded account policies, and more sophisticated borrower-risk management after appropriate technical and security reviews.
-
-**Phase 4 — Production:** Conduct security audits, validate borrower demand, introduce controlled mainnet pilots, and pursue integrations with MUSD merchants and financial applications.
-
-## Long-Term Vision
-
-Mezo makes it possible to access the value of Bitcoin without selling it.
-
-Ballast aims to make those Bitcoin-backed loans easier to manage after borrowing.
-
-A borrower should be able to receive payments, allocate income, reduce outstanding debt, and understand their redemption exposure without constantly switching between financial applications or performing calculations manually.
-
-Over time, Ballast can become a programmable financial layer that connects Bitcoin-backed credit with MUSD commerce.
-
-Mezo unlocks your Bitcoin's liquidity. Ballast helps you manage the loan that makes that liquidity possible.
-
-## Final Submission Summary
-
-- **Project:** Ballast
-- **Category:** Bitcoin-Backed Loan Risk Management
-- **Primary Track:** DeFi
-- **Secondary Track:** Access & Distribution
-- **TL;DR:** Ballast is a programmable cash-flow and risk-management layer for Mezo that turns incoming MUSD payments into automatic debt repayment, shows how each repayment affects redemption exposure, and aims to extend access through cross-chain payments and optional BTC downside hedging.
+**Team:** Maris, solo builder (GitHub: Stella112).
 
 ---
 
-## Implementation status and evidence (Mezo testnet, chain 31611)
+## Implementation status and evidence (v2, Mezo testnet chain 31611, 14 Nov 2026)
 
-Status as of 2026-11-14. Every **Live** item has a confirmed testnet transaction (status 1). Full detail: [TEST_EVIDENCE.md](TEST_EVIDENCE.md), [DEPLOYMENTS.md](DEPLOYMENTS.md).
+Every row marked **Live** has confirmed testnet transactions (status 1). Addresses: [DEPLOYMENTS.md](DEPLOYMENTS.md). Full detail: [TEST_EVIDENCE.md](TEST_EVIDENCE.md).
 
 | Part of the description | Status | Evidence |
 |---|---|---|
-| Ballast Account owns a real Mezo loan; NFT controls it; NFT locked while debt is open | **Live** | [openTrove](https://explorer.test.mezo.org/tx/0x73e6312cd962106ef5b07f6a2db4e1e8572580c0d9df9b4b404ebd8c26514940); 15 unit/fuzz + 4 fork tests |
-| Payback: invoice paid by another wallet, split and repaid in one transaction | **Live** | [100 MUSD → 75 / 5 / 20, debt −20.000000](https://explorer.test.mezo.org/tx/0x3b9dce365e1ca8b2e043cc663fbc21c24b5f5364a7c90b2cd68be9571a3e5bc7) |
-| Presets Keep My BTC / Get Out of Debt / Keep Cash Available, editable | **Live** | 40/10/50, 75/0/25 and 10/5/85 (repay/reserve/spendable), any custom split; Payback starts paused |
-| Repayment respects Mezo minimum debt and configured limits | **Live** | Over-limit repayment reverts the whole payment (fork test `repayBeyondFloorRevertsWholePayment`) |
-| Redemption Radar: position, neighbours, cost to pass 1/10/50, ratio after repayment, max repayable, BTC −10/−20/−30%, verified before/after | **Live** | [Quote → repay → #165 → #166](https://explorer.test.mezo.org/tx/0xea07e53b0a2664cffc796b8e1063c0174979068ef0f200ccd5d810c3bd798c75); scenario numbers equal Mezo's `getCurrentICR` / `getTCR` exactly at block 16764464 |
-| Existing Mezo borrowers: separate signed repayment flow | **Live** | `BallastRepaymentAdapter` + Mezo's one-off `repayMUSDWithSignature`: [50 MUSD → 40 to borrower, 10 repaid, debt −10.000000](https://explorer.test.mezo.org/tx/0x359ee97e8a6964e5354f55576bb667595de5e9f41f453b894d24df94b0462494); [app-signed link: 8 / 2](https://explorer.test.mezo.org/tx/0xcce41c98e012f25f786857cc7706b12ef1dcb69580f4b9b1f00f20615d56ea0b); 8 fork tests |
-| `BallastRepaymentAdapter` | **Live** | [0x096f…f7DC](https://explorer.test.mezo.org/address/0x096f8C705fce216bdBAEc7f86022117682A9f7DC), source-verified. Ballast accounts repay their own loans directly inside `BallastAccount`; the adapter adds signed repayment for wallet-held loans and a repayable-amount read (`maxRepayable`) that works for both kinds |
-| Router as infrastructure; working invoice-payment link | **Live** | Public `BallastRouter` and adapter; invoice links paid by a second wallet. SDK is Phase 2 |
-| Pay From Anywhere (Base USDC → Mezo MUSD) | **Not available — route not verified** | Mezo's contracts reference lists Wormhole NTT bridge contracts for **mainnet only**; no Mezo testnet or Base Sepolia deployment is listed (checked 2026-11-14). As the description requires, no simulated bridge is presented. Shown as planned in the app |
-| Hedge (Morpho short) | **Simulation, clearly labelled** | No Morpho deployment on Mezo testnet; the Mezo mainnet Morpho market is BTC collateral / mUSDC loan (the opposite direction). `/app/hedge` is an interactive simulator using stated assumptions only |
-| Stack | Live | Next.js, TypeScript, Tailwind CSS, Solidity/Foundry, wagmi/viem, Vercel, server-side Radar read route. UI components are hand-built on Tailwind; shadcn/ui is not used |
+| NFT-controlled account that opens and owns a real Mezo loan | **Live** | Account [`0x1Ed5…10e0`](https://explorer.test.mezo.org/address/0x1Ed5B7462545b4639d70fE18A300Bdbdb55910e0), [openTrove](https://explorer.test.mezo.org/tx/0xe7d5fb3e00af9963e53554a2b242615a3d63d6e0453aef8adf40cb4fc1baff7f) |
+| NFT transfer moves the whole account, loan included | **Live** | [deployer → second wallet with the loan open](https://explorer.test.mezo.org/tx/0x6a0b54177b23632062f185062c70dd2dadd9635c2ab0074efcee38e8eb946bd4), old holder's withdrawal rejected, [and back](https://explorer.test.mezo.org/tx/0x4f91ca3b2c7c1f318af481d0e1c4079c6e4f419c68dccb75a0a724e802b8cb3d) |
+| Presets 20/5/75, 60/40, 10/90 with a minimum cash buffer; adjustable | **Live** | Policy on-chain ([setPolicy](https://explorer.test.mezo.org/tx/0x77ebb12b6caa33cd2fad02fff83f48508ee1073914e97043a4082d393144cabf)); buffer covered by tests |
+| `BallastRouter.pay(accountId, amount, reference)` splits and emits the ratio before and after | **Live** | [100 MUSD → 75 owner / 5 hedge reserve / 20 repaid; ratio 140.55% → 141.84%](https://explorer.test.mezo.org/tx/0xab0c50dcb704019ecb39117a9b0950d2198fe53ef9a580658fae47d790ca8606) |
+| No signature per payment; keeper triggers the policy and cannot redirect funds | **Live** | 50 MUSD sent straight to the account, [policy applied by a non-owner wallet](https://explorer.test.mezo.org/tx/0x8e804aaeb85cb98bbaef90e90994e020d5d66e794f2de6a82d89dd8c72d7c484): 37.5 / 2.5 / 10, ratio 141.27% → 141.92% |
+| Repayments stop at Mezo's minimum debt; the excess goes to the owner | **Live in tests** | Test against live Mezo: debt stops at exactly 2,000 MUSD, excess paid to owner |
+| Existing loans use Mezo's signed one-off repayment | **Live** | [50 MUSD → 40 to borrower, 10 repaid](https://explorer.test.mezo.org/tx/0x359ee97e8a6964e5354f55576bb667595de5e9f41f453b894d24df94b0462494) |
+| Redemption-line simulator (all six metrics, plus BTC −10/−20/−30%) | **Live** | Radar page; numbers equal Mezo's own reads; [quote → repay → position moved](https://explorer.test.mezo.org/tx/0xea07e53b0a2664cffc796b8e1063c0174979068ef0f200ccd5d810c3bd798c75) (v1 account) |
+| Shareable pay link for each account | **Live** | `/pay/a/<accountId>` in the app |
+| Hedge: MUSD collateral on Morpho Blue, borrow BTC, sell on Mezo Pools, close, proceeds to the account | **Live** | [open](https://explorer.test.mezo.org/tx/0x806d0be570381b8d17030c7d1a577ae1200415b9c0b40de5c403e959b6b3720e), [close](https://explorer.test.mezo.org/tx/0xcf2c939a407618ed7d12f69f80f6e09d273951cf5ed34482654dae975c42c2f9), [to account](https://explorer.test.mezo.org/tx/0xdacf1c2a355e978821c9b418f21be314c3e203cb576f3f1b3ce5780c88c6cfa7) |
+| SIMULATED BTC drop, clearly labelled | **Live** | Hedge page, "SIMULATED — not a real price move" |
+| Pay from Base Sepolia to a Mezo loan | **Live, with a different bridge asset** | See differences below |
+
+### Where the testnet build differs from the text
+
+1. **Pay from Base uses USDC over Wormhole's token bridge, not MUSD over NTT.** Mezo publishes its MUSD NTT bridge contracts for mainnet only, so MUSD cannot be bridged from Base Sepolia. Wormhole's token bridge does connect Base Sepolia to Mezo testnet. The payer sends USDC on Base Sepolia to Ballast's receiver on Mezo; one Mezo transaction redeems it, swaps it to MUSD and pays through the router (split and repayment). The description allows the USDC route when a MUSD/USDC test pool exists: **that pool was created and seeded by Ballast** (about 8 USDC and 8 MUSD), because none existed.
+2. **Morpho Blue on Mezo testnet was deployed by Ballast**, from Morpho's unmodified v1.0.0 source, and **its BTC lending liquidity (0.0012 BTC) was supplied by Ballast**. Morpho's own deployment exists on Mezo mainnet only.
+3. **The hedge lives in a per-account hedge module**, a separate contract controlled by the same NFT, not inside the account contract itself. Proceeds are sent to the account as the owner's MUSD.
+4. **NFT transfers go to wallet addresses only**, not contracts, so a marketplace escrow sale is not supported yet. A direct wallet-to-wallet transfer moves the whole account.
+5. **`pay()` without position hints costs about 4 million gas** on today's list of about 325 loans; the app and integrators should use `payWithHints`, which does the same thing with hints computed off-chain.
+6. **The hedge share is held as a MUSD reserve** in the account until the owner opens a hedge; it is not invested automatically.

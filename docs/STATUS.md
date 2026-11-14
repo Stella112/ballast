@@ -4,6 +4,7 @@ Deadline: Mezo Buildathon Wave 2, **2026-11-15** (exact cutoff/timezone: verify 
 
 | Item | State | Next action |
 |---|---|---|
+| **v2 contracts (owner's final description)** | **VERIFIED LIVE**: deployed, source-verified, 46 tests, live pay / keeper / NFT transfer / hedge (docs/TEST_EVIDENCE.md, v2 section) | browser-wallet run |
 | Repo audit / tools | VERIFIED | — |
 | Mezo addresses, ABIs, params | VERIFIED | docs/VERIFICATION.md |
 | Contracts (Factory/NFT/Account/Router) | VERIFIED: deployed; 15 unit/fuzz + 4 fork tests PASS | — |

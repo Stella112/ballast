@@ -1,5 +1,35 @@
 # Deployments — Mezo testnet (chain 31611)
 
+## Current: v2 (deployed 2026-11-14, source commit `881a6cc`)
+Compiler solc 0.8.24, EVM london, optimizer 200 runs. Machine-readable copy: `config/deployments.mezo-testnet.json` (`ballast` = v2, `ballastV1` = first deployment). All contracts below are source-verified on the Mezo explorer. No admin, owner or upgrade keys on any Ballast contract.
+
+| Contract | Address | Deploy tx | Block |
+|---|---|---|---|
+| BallastRouter | [`0x4E3B2E53d35c74e537fBA6E3EAe38c21e176c791`](https://explorer.test.mezo.org/address/0x4E3B2E53d35c74e537fBA6E3EAe38c21e176c791) | [`0x2e65506e…`](https://explorer.test.mezo.org/tx/0x2e65506efbfd3b640442aa0b776beedcc226a1d6a95e8e1481fb8eff1d815e27) | 16783431 |
+| BallastAccountNFT | [`0x5483A6DCDFab53Dc1c43d5529420B05c678cEB0a`](https://explorer.test.mezo.org/address/0x5483A6DCDFab53Dc1c43d5529420B05c678cEB0a) | [`0xc965ca35…`](https://explorer.test.mezo.org/tx/0xc965ca35cb228b59c8ee1338bebdeed5509ff33bda3f8653f68fa057c1049896) | 16783433 |
+| BallastFactory | [`0xeddfA83A6253ec23583d6EeA959beaAFd8FC5C44`](https://explorer.test.mezo.org/address/0xeddfA83A6253ec23583d6EeA959beaAFd8FC5C44) | [`0xfcc3f118…`](https://explorer.test.mezo.org/tx/0xfcc3f118786ed4756cc04e5d8e4ab5970d1af07c97a3bd1c978bc69689f8ce54) | 16783435 |
+| BallastAccount #1 (demo, owns the Mezo loan) | [`0x1Ed5B7462545b4639d70fE18A300Bdbdb55910e0`](https://explorer.test.mezo.org/address/0x1Ed5B7462545b4639d70fE18A300Bdbdb55910e0) | createAccount [`0x3c6ab6b4…`](https://explorer.test.mezo.org/tx/0x3c6ab6b45bd60bf05d692a757046c4d89268c3103402bcf3a111de62d2bf56d6) | 16783439 |
+| BallastHedgeFactory | [`0x912873e0618e5DBbb31a4145075f4bA44bE44db0`](https://explorer.test.mezo.org/address/0x912873e0618e5DBbb31a4145075f4bA44bE44db0) | [`0x222f0099…`](https://explorer.test.mezo.org/tx/0x222f0099ab646acde097d0fb86bbf3cc375636d7a9ccd7357812586595e81fa5) | 16783481 |
+| BallastHedge for account #1 | [`0xd39db99E4F9C12C3A8933F9A94AFF7869558254a`](https://explorer.test.mezo.org/address/0xd39db99E4F9C12C3A8933F9A94AFF7869558254a) | [`0x09ec7571…`](https://explorer.test.mezo.org/tx/0x09ec7571e4a473ee0ac307e665f1d56df93659dc603c3bf35743869082f74bcc) | 16783612 |
+| BallastBridgeReceiver (Base Sepolia USDC → invoice) | [`0x841c8ad2795977D44c277CB294515a61421d2C98`](https://explorer.test.mezo.org/address/0x841c8ad2795977D44c277CB294515a61421d2C98) | [`0x0eafb75a…`](https://explorer.test.mezo.org/tx/0x0eafb75ae9bb63cff9add2a0dfdadab24d27b5ebff0838edd23c447d9944783e) | 16783484 |
+| BallastRepaymentAdapter (wallet-held loans; unchanged) | [`0x096f8C705fce216bdBAEc7f86022117682A9f7DC`](https://explorer.test.mezo.org/address/0x096f8C705fce216bdBAEc7f86022117682A9f7DC) | [`0x8fefd7dd…`](https://explorer.test.mezo.org/tx/0x8fefd7dd8602116059eabbac2c575f16fdcbc21856b8cd0b8cb203a2b578afd5) | 16764880 |
+| Morpho Blue v1.0.0 (deployed by Ballast, unmodified upstream) | [`0x3f2Be2a4a16e3fbc55e168B6cC56AA46Ff9cdC93`](https://explorer.test.mezo.org/address/0x3f2Be2a4a16e3fbc55e168B6cC56AA46Ff9cdC93) | [`0x6ca88599…`](https://explorer.test.mezo.org/tx/0x6ca88599a87af54cb4b44fb659ed46d03bdb8bae88088cfc8167a28ad9fb5266) | 16772885 |
+| AdaptiveCurveIrm v1.0.0 | [`0xf3e3baD2f52662FDdef1f1C53Ce733E6703cB484`](https://explorer.test.mezo.org/address/0xf3e3baD2f52662FDdef1f1C53Ce733E6703cB484) | [`0x5c81aaae…`](https://explorer.test.mezo.org/tx/0x5c81aaae38748126e948eef36cde8987372fb5d9e3ee39b4e6af173ab84a3ee5) | 16772890 |
+| BallastMezoOracle | [`0x301FEEf08C25D2F8AE5EfF95E8f32253006108d9`](https://explorer.test.mezo.org/address/0x301FEEf08C25D2F8AE5EfF95E8f32253006108d9) | [`0xfcb28974…`](https://explorer.test.mezo.org/tx/0xfcb28974c94d6583f20cf250db33dce9a3c5ce827b4d0a56de105e10aba6530e) | 16772895 |
+
+Created or funded by Ballast because nothing existed on testnet (disclosed in the app):
+- Morpho market `0xffa1cd17869e9f195a2c9f6b218a5f8c3d90251640616b6da62604db0c482573` (loan = Mezo BTC `0x7b7C…0000`, collateral = MUSD, LLTV 86%); its 0.0012 BTC of lending liquidity came from the Ballast deployer.
+- Mezo Pools stable pool Wormhole-USDC/MUSD [`0x55a317f5DDC12C7F52922775f56930e5036c0047`](https://explorer.test.mezo.org/address/0x55a317f5DDC12C7F52922775f56930e5036c0047), seeded with about 8 USDC and 8 MUSD. Wormhole-wrapped Base Sepolia USDC on Mezo: [`0x48AE9354c560F2D4f26e41760e67fdd3f2E8C4F0`](https://explorer.test.mezo.org/address/0x48AE9354c560F2D4f26e41760e67fdd3f2E8C4F0).
+
+Demo wallets (disposable, testnet-only): owner/controller `0x4ff0D7c712B109dE476f21Ed443Ef0928d52a5fA`, payer `0xCBCd26d717CEe0305b92FDC1E50A398608A4d857`.
+
+Frontend: https://ballast-tawny.vercel.app (Vercel production, redeploys on every push to `main`).
+
+Migration v1 → v2 (2026-11-14): the v1 demo loan was closed ([closeTrove](https://explorer.test.mezo.org/tx/0x57df13743a8fd7a1f68a7b7102ffd48e02b95b20263f559681a3c17bae05cb2a)), its 0.048 BTC returned to the owner, and a new loan opened from the v2 account ([openTrove](https://explorer.test.mezo.org/tx/0xe7d5fb3e00af9963e53554a2b242615a3d63d6e0453aef8adf40cb4fc1baff7f)).
+
+---
+
+## Superseded: v1 (2026-11-13/14) — kept because earlier evidence refers to it
 Source commit for the deployed bytecode: `d4facb3`. Compiler solc 0.8.24, EVM london, optimizer 200 runs.
 Machine-readable copy: `config/deployments.mezo-testnet.json`. Explorer: https://explorer.test.mezo.org
 
