@@ -28,7 +28,7 @@
 
 ## Off-chain
 - **Invoice links** encode `{tokenId, amount, expiry, memo, salt, sig}`; `invoiceId = keccak256(abi.encode(memo, salt))` binds the memo to the signature. No database.
-- **Radar** (`lib/radar`) — server route `/api/radar` takes one block, multicalls every trove owner's `getNext/getPrev/getNominalICR/getCurrentICR/getTroveDebt`, rebuilds the list from pointers and verifies count, pointer consistency, NICR monotonicity and tail. Quote math in bigint mirrors Mezo (`NICR = coll·1e20/principal`, interest paid first, strict-greater to pass ties).
+- **Radar** (`lib/radar`) — server route `/api/radar` takes one block, multicalls every trove owner's `getNext/getPrev/getNominalICR/getCurrentICR/getTroveDebt`, rebuilds the list from pointers and verifies count, pointer consistency, NICR monotonicity and tail. Quote math in bigint mirrors Mezo (`NICR = coll·1e20/principal`, interest paid first, strict-greater to pass ties). Quotes and simulations include the post-repayment ICR at the snapshot price. Price-drop scenarios (−10/−20/−30%) recompute your ICR exactly, re-express other troves' ICRs linearly at the new price to find redemption eligibility (ICR ≥ MCR), and read `TroveManager.getTCR(p)` / `checkRecoveryMode(p)` at the same block. Mezo liquidates only on ICR < MCR (musd@da7888a `TroveManager.sol:1148`); redemptions revert when TCR < MCR (`TroveManager.sol:1472`).
 - **Frontend** — Next.js 15 App Router, wagmi 2 / viem 2, Tailwind 4. Every write is simulated, then success is shown only for a mined receipt with status 1. Addresses come only from `config/deployments.mezo-testnet.json`.
 
 ## Tests

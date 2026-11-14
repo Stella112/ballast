@@ -66,3 +66,12 @@ Note: the live.sh run exited before logging this tx (a receipt wait in `cast sen
 - `pnpm typecheck` clean; `pnpm build` → 11 routes compiled (Next 15.5.29).
 - Browser (built-in, no wallet) against live testnet: `/pay/<link>` for a merchant-signed 10 MUSD invoice resolves account `0xDE61…6323`, signature **Valid** (viem `verifyTypedData` vs live controller), split preview 7.50 / 0.50 / 2.00 from `router.computeSplit`. Same link with edited memo → signature **Invalid**. `/api/radar` → block 16762947, all 4 checks true, rank 166, 11-row window, ~11 s. Mobile 375 px: no horizontal overflow.
 - **Not yet verified:** wallet-connected flows in a real browser wallet (needs a human wallet extension).
+
+## Radar: post-repayment ICR and BTC price-drop scenarios (2026-11-14)
+- `pnpm test` → 12/12 Radar math tests pass (new: `droppedPrice`, `scaleIcr` vs exact ICR within 2 wei, quote `newTotalDebt`/`newIcr`, `eligibilityAtPrice`). `pnpm typecheck` clean, `pnpm build` OK.
+- Live snapshot for account `0xDE61…6323` at **block 16764464** (price 68,234.25 MUSD/BTC): ICR 151.68%, position #166 of 325.
+  - Quotes: pass 1 → 0.444240 MUSD, ICR after 151.72%; pass 10 → 23.996926 MUSD, ICR after 153.39%; pass 50 → 164.02 MUSD exceeds max repayable 159.25 (marked unreachable without closing).
+  - Scenarios: −10% → ICR 136.52%, eligible rank 154/313, 12 troves below 110%, TCR 220.52%; −20% → ICR 121.35%, rank 39/198, 127 below 110%, TCR 196.01%; −30% → ICR 106.18% → **liquidatable**, TCR 171.51%. No recovery mode or redemption pause at any of these prices.
+  - Cross-check with `cast call --block 16764464`: `TroveManager.getCurrentICR(account, p)` and `getTCR(p)` equal the Radar values **exactly** at all four prices (0, −10, −20, −30%).
+- Local `/api/radar?simulate=25e18` (block 16764491): ICR 151.73% → 153.51%, position #166 → #187.
+- Not verified in the UI with a connected wallet (the Radar cards need a wallet that controls a Ballast account); the page loads with no console errors.

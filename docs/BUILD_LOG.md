@@ -25,3 +25,7 @@
 - `vercel deploy --prod` → READY, production alias https://ballast-tawny.vercel.app (`dpl_5pi9ErA2NVGuorZqvyiUpxF3Q4Ur`). Project is linked to GitHub, so pushes to `main` redeploy.
 - Checks: `/`, `/app`, `/app/radar`, `/app/invoices`, `/app/payback`, `/app/activity`, `/app/hedge`, `/demo`, `/api/radar` all HTTP 200 without login (per-deployment URL is behind Vercel auth; use the production alias).
 - `/api/radar` at block 16763926: size 325, tail 0xBAA1…9E05, consistency checks all true; matched `SortedTroves.getSize()`/`getLast()` via cast. Account 0xDE61…6323: coll 0.048 BTC equal to `TroveManager.getTroveColl`; debt 2159.2483 MUSD vs 2159.2483 on-chain (difference = interest accrued between reads); position 166 of 325 from the tail.
+
+## 2026-11-14 — Radar: post-repayment ICR + BTC drop scenarios; corrected project description
+- Added post-repayment ICR to quotes/simulation and −10/−20/−30% BTC scenarios (math.ts `droppedPrice`/`scaleIcr`/`eligibilityAtPrice`, snapshot `scenarios` using Mezo `getTCR`/`checkRecoveryMode`). Values match chain exactly at block 16764464 (docs/TEST_EVIDENCE.md).
+- Wrote docs/PROJECT_DESCRIPTION.md: the owner's description corrected to match what is built (removed non-existent `BallastRepaymentAdapter` and shadcn/ui; signed repayment for existing troves, Base payments and Hedge marked Planned; real preset percentages and real Radar numbers). Submission category set to the owner's "Bitcoin-Backed Loan Risk Management".

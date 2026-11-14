@@ -24,7 +24,7 @@ Not available: paying from Base Sepolia (not investigated), Morpho hedge (not in
 3. **Policy** — you choose repay % / reserve % (basis points, ≤ 100% total). The reserve is plain uninvested MUSD.
 4. **Invoice** — you sign an EIP-712 invoice in your wallet (no gas, no server). The link carries the signed data.
 5. **Payment** — the payer calls `BallastRouter.payInvoice`. In one transaction the router pulls MUSD, sends the spendable share to you, and the account repays its own trove. Any failure reverts everything.
-6. **Radar** — reads Mezo `SortedTroves` at one block, verifies the list, and shows your position, the repayment needed to pass 1/10/50 troves, and the before/after of each repayment.
+6. **Radar** — reads Mezo `SortedTroves` at one block, verifies the list, and shows your position, the repayment needed to pass 1/10/50 troves and the resulting collateral ratio, what a 10/20/30% BTC drop would do to your loan and the system, and the before/after of each repayment.
 
 Architecture and trust model: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md), [docs/SECURITY.md](docs/SECURITY.md).
 

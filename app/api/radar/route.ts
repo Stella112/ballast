@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { isAddress, type Address } from "viem";
 import { takeSnapshot, toJSON } from "@/lib/radar/snapshot";
-import { maxRepayable, nicr, principalAfterRepay } from "@/lib/radar/math";
+import { icr, maxRepayable, nicr, principalAfterRepay } from "@/lib/radar/math";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -36,7 +36,10 @@ export async function GET(req: Request) {
       const others = snap.list.filter((r) => r.owner.toLowerCase() !== key);
       const below = others.filter((r) => r.nicr < newNicr).length;
       const ties = others.filter((r) => r.nicr === newNicr).length;
-      simulation = { amount: amt, exceedsFloor: amt > cap, maxRepayable: cap, newPrincipal, newNicr, newPosFromTail: below + 1, ties, currentPosFromTail: m.rawPosFromTail };
+      const exceedsFloor = amt > cap;
+      // Repayment reduces total debt one-for-one; post-repayment ICR at the snapshot price.
+      const newIcr = exceedsFloor ? undefined : icr(m.coll, m.totalDebt - amt, snap.price);
+      simulation = { amount: amt, exceedsFloor, maxRepayable: cap, newPrincipal, newNicr, newIcr, currentIcr: m.icr, newPosFromTail: below + 1, ties, currentPosFromTail: m.rawPosFromTail };
     }
     const body = toJSON({ ...snap, list: undefined, window, simulation, tailPreview: snap.list.slice(0, 5).map((r, k) => ({ ...r, pos: k + 1 })) });
     if (!simRaw) cache.set(key, { at: Date.now(), body });

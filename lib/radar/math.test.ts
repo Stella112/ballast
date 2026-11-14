@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { icr, interestBuffer, liquidationPrice, maxPrincipalToBeat, maxRepayable, nicr, principalAfterRepay, quoteToBeat } from "./math";
+import { droppedPrice, eligibilityAtPrice, icr, interestBuffer, liquidationPrice, maxPrincipalToBeat, maxRepayable, nicr, principalAfterRepay, quoteToBeat, scaleIcr } from "./math";
 
 const E18 = 10n ** 18n;
 
@@ -63,5 +63,48 @@ describe("radar math", () => {
     const b = interestBuffer(2172n * E18, 100n, 600n);
     expect(b).toBeGreaterThan(0n);
     expect(b).toBeLessThan(E18 / 1000n);
+  });
+  it("droppedPrice applies basis points and rejects out-of-range drops", () => {
+    expect(droppedPrice(68_000n * E18, 1000n)).toBe(61_200n * E18);
+    expect(droppedPrice(68_000n * E18, 0n)).toBe(68_000n * E18);
+    expect(droppedPrice(68_000n * E18, 10_000n)).toBe(0n);
+    expect(() => droppedPrice(1n, 10_001n)).toThrow();
+  });
+
+  it("scaleIcr matches recomputing ICR at the new price within rounding", () => {
+    const coll = 48n * 10n ** 15n, debt = 2159248319499518484193n, price = 67836210600000000000000n;
+    for (const bps of [1000n, 2000n, 3000n]) {
+      const np = droppedPrice(price, bps);
+      const exact = icr(coll, debt, np);
+      const scaled = scaleIcr(icr(coll, debt, price), price, np);
+      expect(exact - scaled).toBeGreaterThanOrEqual(0n);
+      expect(exact - scaled).toBeLessThanOrEqual(2n);
+    }
+  });
+
+  it("quote includes post-repayment total debt and ICR when price is given", () => {
+    const coll = 48n * 10n ** 15n, principal = 2159n * E18, interest = E18, totalDebt = principal + interest;
+    const price = 68_000n * E18;
+    const q = quoteToBeat({ coll, principal, interest, totalDebt, targetNicr: nicr(coll, principal) + 1000n, gasComp: 200n * E18, minNetDebt: 1800n * E18, buffer: 0n, price });
+    expect(q.kind).toBe("ok");
+    if (q.kind !== "ok") return;
+    expect(q.newTotalDebt).toBe(totalDebt - q.repay);
+    expect(q.newIcr).toBe(icr(coll, q.newTotalDebt, price));
+    expect(q.newIcr! > icr(coll, totalDebt, price)).toBe(true);
+  });
+
+  it("eligibilityAtPrice drops troves below MCR from the redemption order and counts them", () => {
+    const mcr = 11n * 10n ** 17n, price = 100n * E18, newPrice = 80n * E18; // -20%
+    // tail-first: ICRs at `price`; after -20%: 1.2->0.96 (out), 1.5->1.2 (in), me, 2.0->1.6 (in)
+    const list = [
+      { icr: 12n * 10n ** 17n, debt: 10n * E18 },
+      { icr: 15n * 10n ** 17n, debt: 20n * E18 },
+      { icr: 16n * 10n ** 17n, debt: 30n * E18 },
+      { icr: 20n * 10n ** 17n, debt: 40n * E18 },
+    ];
+    const r = eligibilityAtPrice({ list, pos: 2, myIcrAtNewPrice: scaleIcr(list[2].icr, price, newPrice), mcr, price, newPrice });
+    expect(r).toEqual({ eligibleRank: 2, eligibleCount: 3, debtAheadEligible: 20n * E18, liquidatableCount: 1 });
+    const low = eligibilityAtPrice({ list, pos: 0, myIcrAtNewPrice: scaleIcr(list[0].icr, price, newPrice), mcr, price, newPrice });
+    expect(low.eligibleRank).toBeUndefined();
   });
 });

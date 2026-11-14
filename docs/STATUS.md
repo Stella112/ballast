@@ -11,7 +11,7 @@ Deadline: Mezo Buildathon Wave 2, **2026-11-15** (exact cutoff/timezone: verify 
 | **Gate B** 100 MUSD invoice 20/5/75 live | **VERIFIED** (docs/TEST_EVIDENCE.md) | — |
 | Ballast explorer source verification | **VERIFIED** (Router, NFT, Factory, Account: Blockscout "Pass - Verified", 2026-11-13) | — |
 | Local unit/fuzz tests (non-fork) | VERIFIED (15 pass) | — |
-| **Gate C** Redemption Radar | **VERIFIED** (read model + live reorder, docs/TEST_EVIDENCE.md) | wire into UI |
+| **Gate C** Redemption Radar | **VERIFIED** (read model + live reorder; post-repay ICR + BTC drop scenarios checked vs chain 2026-11-14) | — |
 | Gate D invoice link + DEMO.md | IN PROGRESS: links + pay page built; signature/split checked in browser; DEMO.md written | full browser-wallet run (needs a human wallet) |
 | P0-E frontend | **DEPLOYED**: all routes build; tested in browser without wallet, mobile 375px OK | live at https://ballast-tawny.vercel.app (verified 2026-11-14); repo published at https://github.com/Stella112/ballast |
 | Docs / submission copy | IN PROGRESS: README, DEMO, ARCHITECTURE, ROADMAP, AKINDO_SUBMISSION written | fill URLs, video, team |

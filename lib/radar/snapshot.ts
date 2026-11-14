@@ -1,7 +1,24 @@
 import { createPublicClient, http, type Address, type PublicClient, zeroAddress, getAddress } from "viem";
 import { cfg, mezoTestnet, RPC_URL } from "../config";
 import { TroveManagerAbi, SortedTrovesAbi, PriceFeedAbi, BorrowerOperationsAbi } from "../abis";
-import { icr, interestBuffer, liquidationPrice, maxRepayable, nicr, quoteToBeat, type Quote } from "./math";
+import { droppedPrice, eligibilityAtPrice, icr, interestBuffer, liquidationPrice, maxRepayable, nicr, quoteToBeat, type Quote } from "./math";
+
+/** Hypothetical BTC price drops shown by Radar, in basis points. 0 = current price. */
+export const DROP_SCENARIOS_BPS = [0n, 1000n, 2000n, 3000n];
+
+export type DropScenario = {
+  dropBps: bigint;
+  price: bigint;
+  myIcr: bigint;
+  liquidatable: boolean; // my ICR < MCR at this price (TroveManager liquidates on ICR < MCR)
+  eligibleRank?: number;
+  eligibleCount: number;
+  debtAheadEligible: bigint;
+  liquidatableCount: number; // troves in the list below MCR at this price (estimate)
+  tcr: bigint; // TroveManager.getTCR(price) at the snapshot block
+  recoveryMode: boolean; // TroveManager.checkRecoveryMode(price): TCR < 150%
+  redemptionsPaused: boolean; // TCR < MCR -> redeemCollateral reverts
+};
 
 export type TroveRow = { owner: Address; nicr: bigint; icr: bigint; debt: bigint; eligible: boolean };
 
@@ -35,6 +52,7 @@ export type RadarSnapshot = {
     interestRateBps: bigint;
     neighbors: { prev: Address; next: Address }; // prev = toward head (safer), next = toward tail
     targets: { pass: number; target?: Address; targetNicr?: bigint; quote?: Quote }[];
+    scenarios: DropScenario[];
   };
 };
 
@@ -161,9 +179,31 @@ async function describeMe(client: PublicClient, account: Address, snap: RadarSna
     if (!t) return { pass: k };
     return {
       pass: k, target: t.owner, targetNicr: t.nicr,
-      quote: quoteToBeat({ coll, principal, interest, totalDebt: fullDebt, targetNicr: t.nicr, gasComp: snap.gasComp, minNetDebt: snap.minNetDebt, buffer }),
+      quote: quoteToBeat({ coll, principal, interest, totalDebt: fullDebt, targetNicr: t.nicr, gasComp: snap.gasComp, minNetDebt: snap.minNetDebt, buffer, price: snap.price }),
     };
   });
+  // Price-drop scenarios. System TCR / recovery mode come from Mezo's own view functions at the same block.
+  const prices = DROP_SCENARIOS_BPS.map((b) => droppedPrice(snap.price, b));
+  const sys = await client.multicall({
+    contracts: prices.flatMap((p) => [
+      { address: TM, abi: TroveManagerAbi, functionName: "getTCR", args: [p] } as const,
+      { address: TM, abi: TroveManagerAbi, functionName: "checkRecoveryMode", args: [p] } as const,
+    ]),
+    allowFailure: false, ...at,
+  });
+  const scenarios: DropScenario[] = DROP_SCENARIOS_BPS.map((dropBps, k) => {
+    const p = prices[k];
+    const myIcr = icr(coll, fullDebt, p);
+    const tcr = sys[k * 2] as bigint;
+    const e = eligibilityAtPrice({ list: snap.list, pos: inList && ok ? pos : -1, myIcrAtNewPrice: myIcr, mcr: snap.mcr, price: snap.price, newPrice: p });
+    return {
+      dropBps, price: p, myIcr, liquidatable: myIcr < snap.mcr,
+      eligibleRank: inList && ok ? e.eligibleRank : undefined,
+      eligibleCount: e.eligibleCount, debtAheadEligible: e.debtAheadEligible, liquidatableCount: e.liquidatableCount,
+      tcr, recoveryMode: sys[k * 2 + 1] as boolean, redemptionsPaused: tcr < snap.mcr,
+    };
+  });
+
   return {
     account, inList,
     rawPosFromTail: inList && ok ? pos + 1 : undefined,
@@ -181,6 +221,7 @@ async function describeMe(client: PublicClient, account: Address, snap: RadarSna
       next: inList && pos > 0 ? snap.list[pos - 1].owner : zeroAddress,
     },
     targets,
+    scenarios,
   };
 }
 

@@ -1,7 +1,7 @@
 # AKINDO submission — Mezo Buildathon Wave 2
 
 **Project name:** BALLAST
-**Category:** Automated BTC Debt Repayment
+**Category:** Bitcoin-Backed Loan Risk Management
 **Track:** Track 1 — DeFi. (Track 2 — Access & Distribution relevance: invoice links route merchant income into loan repayment. Claim only if AKINDO allows secondary tracks — TODO: confirm on platform.)
 **One-line:** The cash-flow autopilot for Bitcoin-backed loans: every MUSD payment you receive can make your Mezo loan safer.
 
@@ -16,7 +16,7 @@ Mezo borrowers face liquidation if BTC falls, and redemption — lowest-ratio tr
 2. Choose a policy (e.g. 20% repay / 5% reserve / 75% spendable).
 3. Sign invoice links in your wallet; customers pay in MUSD.
 4. One transaction: payer → you (spendable), → account reserve, → Mezo `repayMUSD` from the account.
-5. Radar: queue position from a verified full-list read, quotes to pass 1/10/50 troves, liquidation-price estimate, before/after.
+5. Radar: queue position from a verified full-list read, quotes to pass 1/10/50 troves with the collateral ratio after each repayment, liquidation-price estimate, BTC −10/−20/−30% scenarios (your ICR, liquidatable or not, redemption rank, Mezo TCR and recovery mode at each price), before/after.
 
 ## Mezo integration
 Direct calls to Mezo MUSD `BorrowerOperations` (openTrove, repayMUSD, withdrawMUSD, addColl, withdrawColl, closeTrove, claimCollateral) from the account contract; reads from `TroveManager`, `SortedTroves`, `HintHelpers`, `PriceFeed`. Addresses and implementations verified against explorer-verified source (`mezo-org/musd@da7888a`). Native BTC collateral; MUSD as the payment asset.
@@ -34,7 +34,7 @@ Turns MUSD payment volume into continuous debt reduction, raising borrowers' col
 - Account-owned trove opened: tx 0x73e6312cd962106ef5b07f6a2db4e1e8572580c0d9df9b4b404ebd8c26514940 (block 16762136).
 - 100 MUSD invoice paid by a separate wallet → 75 / 5 / 20; trove debt −20.000000000000000000 MUSD in the same tx: 0x3b9dce365e1ca8b2e043cc663fbc21c24b5f5364a7c90b2cd68be9571a3e5bc7 (block 16762254).
 - Radar quote 12.756783 MUSD → repaid → queue position #165 → #166: 0xea07e53b0a2664cffc796b8e1063c0174979068ef0f200ccd5d810c3bd798c75 (block 16762619).
-- Tests: 15 Foundry unit/fuzz, 4 Foundry tests on live Mezo state, 8 Radar math tests.
+- Tests: 15 Foundry unit/fuzz, 4 Foundry tests on live Mezo state, 12 Radar math tests.
 
 ## Limitations
 Testnet only, unaudited. NFT locked while a loan is active. Exact-amount single-use invoices. Repayments that would cross Mezo's 1,800 MUSD net-debt floor revert the whole payment. Queue position is not a guarantee. Base payments and Morpho hedge: **not built / not verified** (UI says so).

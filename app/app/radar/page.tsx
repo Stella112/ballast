@@ -12,7 +12,11 @@ import { principalAfterRepay } from "@/lib/radar/math";
 import type { AccountState } from "@/lib/useBallast";
 
 type Row = { owner: string; nicr: string; icr: string; debt: string; eligible: boolean; pos: number };
-type Quote = { kind: "already-ahead" } | { kind: "ok"; repay: string; newNicr: string; buffer: string } | { kind: "exceeds-floor"; repay: string; maxRepayable: string };
+type Quote = { kind: "already-ahead" } | { kind: "ok"; repay: string; newNicr: string; buffer: string; newTotalDebt: string; newIcr?: string } | { kind: "exceeds-floor"; repay: string; maxRepayable: string };
+type Scenario = {
+  dropBps: string; price: string; myIcr: string; liquidatable: boolean; eligibleRank?: number; eligibleCount: number;
+  debtAheadEligible: string; liquidatableCount: number; tcr: string; recoveryMode: boolean; redemptionsPaused: boolean;
+};
 type Radar = {
   blockNumber: string; blockTimestamp: string; queriedAt: number; price: string; mcr: string; size: number;
   verified: Record<string, boolean>;
@@ -21,8 +25,9 @@ type Radar = {
     inList: boolean; rawPosFromTail?: number; eligibleRank?: number; eligibleCount: number; debtAheadEligible: string;
     nicr: string; icr: string; liquidationPrice: string; maxRepayable: string; totalDebt: string; principal: string; interest: string;
     targets: { pass: number; target?: string; targetNicr?: string; quote?: Quote }[];
+    scenarios: Scenario[];
   };
-  simulation?: { amount: string; exceedsFloor: boolean; maxRepayable: string; newNicr: string; newPosFromTail: number; ties: number; currentPosFromTail: number };
+  simulation?: { amount: string; exceedsFloor: boolean; maxRepayable: string; newNicr: string; newIcr?: string; currentIcr: string; newPosFromTail: number; ties: number; currentPosFromTail: number };
   error?: string;
 };
 
@@ -130,7 +135,12 @@ function RadarView({ s, refetchAccount }: { s: AccountState; refetchAccount: () 
                 <div className="font-medium">Pass the next {t.pass} trove{t.pass > 1 ? "s" : ""}</div>
                 <div className="text-xs text-muted">{t.target ? <>target <Addr a={t.target} /> NICR {t.targetNicr}</> : "not enough troves above you"}</div>
               </div>
-              {t.quote?.kind === "ok" && <div className="num">{fmt(t.quote.repay, 18, 6)} MUSD <span className="text-xs text-muted">(incl. interest + 10-min buffer)</span></div>}
+              {t.quote?.kind === "ok" && (
+                <div className="num text-right">
+                  {fmt(t.quote.repay, 18, 6)} MUSD <span className="text-xs text-muted">(incl. interest + 10-min buffer)</span>
+                  {t.quote.newIcr && <div className="text-xs text-muted">ICR after: {pct(me.icr)} → <span className="text-text">{pct(t.quote.newIcr)}</span></div>}
+                </div>
+              )}
               {t.quote?.kind === "exceeds-floor" && <Badge tone="warn">Not reachable without closing ({fmt(t.quote.repay)} &gt; {fmt(t.quote.maxRepayable)})</Badge>}
               {t.quote?.kind === "already-ahead" && <Badge tone="ok">Already ahead</Badge>}
               {t.quote?.kind === "ok" && (
@@ -159,6 +169,42 @@ function RadarView({ s, refetchAccount }: { s: AccountState; refetchAccount: () 
         )}
       </Card>
 
+      <Card title="If BTC falls…" right={<Badge tone="sim">Projection</Badge>}>
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[640px] text-sm">
+            <thead className="text-left text-xs uppercase text-muted">
+              <tr><th className="py-2">BTC move</th><th className="text-right">BTC price</th><th className="text-right">Your ICR</th><th>Your trove</th><th>System (Mezo)</th></tr>
+            </thead>
+            <tbody className="num">
+              {me.scenarios.map((x) => (
+                <tr key={x.dropBps} className="border-t border-border align-top">
+                  <td className="py-2">{x.dropBps === "0" ? "Now" : `−${Number(x.dropBps) / 100}%`}</td>
+                  <td className="text-right">{fmt(x.price, 18, 0)}</td>
+                  <td className="text-right">{pct(x.myIcr)}</td>
+                  <td className="pl-4">
+                    {x.liquidatable ? <Badge tone="bad">Liquidatable (ICR &lt; {pct(d.mcr)})</Badge>
+                      : allOk && x.eligibleRank ? <span>Redemption order #{x.eligibleRank} of {x.eligibleCount} eligible</span>
+                      : <span className="text-muted">—</span>}
+                    {x.liquidatableCount > 0 && <div className="text-xs text-muted">{x.liquidatableCount} trove(s) below {pct(d.mcr)}</div>}
+                  </td>
+                  <td>
+                    <div>TCR {pct(x.tcr)}</div>
+                    {x.redemptionsPaused ? <Badge tone="bad">Redemptions paused (TCR &lt; {pct(d.mcr)})</Badge>
+                      : x.recoveryMode ? <Badge tone="warn">Recovery mode (TCR &lt; 150%)</Badge>
+                      : <span className="text-xs text-muted">Normal mode</span>}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <p className="mt-2 text-xs text-muted">
+          Same block as the snapshot; only the BTC price changes. Your ICR uses your current debt and collateral. System TCR and recovery mode come from Mezo&apos;s own
+          <code className="mx-1">getTCR</code>/<code className="mx-1">checkRecoveryMode</code> at each price. Redemption order assumes no other trove is liquidated or adjusted first —
+          a real price fall would change the list. Not a forecast or a guarantee.
+        </p>
+      </Card>
+
       <Card title="What if I repay…">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
           <Field label="Amount (MUSD)"><input className={inputCls} inputMode="decimal" value={sim} onChange={(e) => setSim(e.target.value)} placeholder="e.g. 25" /></Field>
@@ -171,7 +217,11 @@ function RadarView({ s, refetchAccount }: { s: AccountState; refetchAccount: () 
         {simRes && (
           <div className="mt-3 text-sm">
             {simRes.exceedsFloor ? <Notice tone="warn">Exceeds the repayable maximum ({fmt(simRes.maxRepayable)} MUSD) — Mezo would revert. Reaching further requires closing the trove.</Notice> : (
-              <p className="num">Projected position: #{simRes.currentPosFromTail} → <strong>#{simRes.newPosFromTail}</strong> (NICR {simRes.newNicr}){simRes.ties > 0 && ` · ${simRes.ties} trove(s) tie at this NICR; order between ties is not guaranteed`}. Simulation at the same snapshot; nothing is sent.</p>
+              <div className="space-y-1 num">
+                <p>Projected position: #{simRes.currentPosFromTail} → <strong>#{simRes.newPosFromTail}</strong> (NICR {simRes.newNicr}){simRes.ties > 0 && ` · ${simRes.ties} trove(s) tie at this NICR; order between ties is not guaranteed`}.</p>
+                {simRes.newIcr && <p>Collateral ratio (ICR): {pct(simRes.currentIcr)} → <strong>{pct(simRes.newIcr)}</strong> at {fmt(d.price)} MUSD/BTC.</p>}
+                <p className="text-xs text-muted">Simulation at the same snapshot; nothing is sent.</p>
+              </div>
             )}
           </div>
         )}
