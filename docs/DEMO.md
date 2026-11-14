@@ -17,6 +17,12 @@ No admin keys are needed. You need a browser wallet with **two accounts** (merch
 6. **Payer** opens the link: signature shows *Valid*; *Approve 100 MUSD* → *Pay invoice*. The receipt card shows the split and the merchant's debt before/after, decoded from the transaction's events, with the explorer link.
 7. **Merchant → /app/activity** and **/app/radar**: the payment and repayment appear; Radar shows the new state at a newer block. Use *Repay from account* on a quote to see a verified before/after rank change (or "No rank change" if that is what happened).
 
+## Existing Mezo loan (wallet-held, optional)
+Needs a wallet that already has its own Mezo loan (for example opened at testnet.mezo.org) with room above Mezo's 2,000 MUSD minimum debt.
+1. **Borrower → /app/existing**: shows debt, ratio and "Repayable now". Enter amount and repay share (e.g. 100 MUSD, 20%) → *Sign & create link*. The wallet asks for two signatures: the invoice, and Mezo's one-off `RepayMUSD` for exactly the repay amount. No gas.
+2. **Payer** opens the link: *Signatures: Valid*, split shown (80 to the borrower, 20 to the loan) → *Approve* → *Pay invoice*. The receipt shows debt before/after from the transaction's event.
+3. Only one such link can be outstanding at a time: Mezo uses each signature nonce once.
+
 ## Expected results
 - Payer −100 MUSD; merchant +75; account reserve +5; trove debt −20 (exactly, in the same tx).
 - Paying the same link again fails (*already paid*). Editing the memo or amount in the link shows *Invalid* signature and the router rejects it.

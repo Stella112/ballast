@@ -6,7 +6,7 @@
 **One-line:** The cash-flow autopilot for Bitcoin-backed loans: every MUSD payment you receive can make your Mezo loan safer.
 
 ## TL;DR
-Ballast gives a Mezo borrower a contract account (controlled by an NFT) that owns their trove. They send customers invoice links; each MUSD payment is split atomically by the borrower's policy — spendable, an MUSD reserve, and direct repayment of the trove. Redemption Radar reads Mezo's sorted trove list and shows what a repayment costs and what it actually changed.
+Ballast gives a Mezo borrower a contract account (controlled by an NFT) that owns their trove. They send customers invoice links; each MUSD payment is split atomically by the borrower's policy — spendable, an MUSD reserve, and direct repayment of the trove. Borrowers whose loan stays in their own wallet get the same income-to-repayment flow through Mezo's one-off signed repayment. Redemption Radar reads Mezo's sorted trove list and shows what a repayment costs, what it does to your collateral ratio, what a BTC drop would do, and what a repayment actually changed.
 
 ## Problem
 Mezo borrowers face liquidation if BTC falls, and redemption — lowest-ratio troves are redeemed first, even healthy ones. People who earn MUSD (freelancers, merchants) must manually move income into repayments, and cannot easily see how a repayment changes their redemption exposure.
@@ -16,13 +16,14 @@ Mezo borrowers face liquidation if BTC falls, and redemption — lowest-ratio tr
 2. Choose a policy (e.g. 20% repay / 5% reserve / 75% spendable).
 3. Sign invoice links in your wallet; customers pay in MUSD.
 4. One transaction: payer → you (spendable), → account reserve, → Mezo `repayMUSD` from the account.
-5. Radar: queue position from a verified full-list read, quotes to pass 1/10/50 troves with the collateral ratio after each repayment, liquidation-price estimate, BTC −10/−20/−30% scenarios (your ICR, liquidatable or not, redemption rank, Mezo TCR and recovery mode at each price), before/after.
+5. Existing Mezo loans (held by a wallet): the borrower signs the invoice and Mezo's one-off `RepayMUSD`; `BallastRepaymentAdapter` repays that exact amount via `repayMUSDWithSignature` and pays the rest to the borrower, in one transaction.
+6. Radar: queue position from a verified full-list read, quotes to pass 1/10/50 troves with the collateral ratio after each repayment, liquidation-price estimate, BTC −10/−20/−30% scenarios (your ICR, liquidatable or not, redemption rank, Mezo TCR and recovery mode at each price), before/after.
 
 ## Mezo integration
-Direct calls to Mezo MUSD `BorrowerOperations` (openTrove, repayMUSD, withdrawMUSD, addColl, withdrawColl, closeTrove, claimCollateral) from the account contract; reads from `TroveManager`, `SortedTroves`, `HintHelpers`, `PriceFeed`. Addresses and implementations verified against explorer-verified source (`mezo-org/musd@da7888a`). Native BTC collateral; MUSD as the payment asset.
+Direct calls to Mezo MUSD `BorrowerOperations` (openTrove, repayMUSD, withdrawMUSD, addColl, withdrawColl, closeTrove, claimCollateral) from the account contract; `BorrowerOperationsSignatures.repayMUSDWithSignature` from the adapter; reads from `TroveManager`, `SortedTroves`, `HintHelpers`, `PriceFeed`. Addresses and implementations verified against explorer-verified source (`mezo-org/musd@da7888a`). Native BTC collateral; MUSD as the payment asset.
 
 ## Technical architecture
-Solidity 0.8.24 (Factory, Account, NFT, Router; no admin keys), Next.js 15 + wagmi/viem frontend, server-side Radar read model. See docs/ARCHITECTURE.md.
+Solidity 0.8.24 (Factory, Account, NFT, Router, RepaymentAdapter; no admin keys), Next.js 15 + wagmi/viem frontend, server-side Radar read model. See docs/ARCHITECTURE.md.
 
 ## Target users
 BTC holders who borrow MUSD on Mezo and receive recurring MUSD income: freelancers, small merchants, DAOs paying contributors.
@@ -34,13 +35,14 @@ Turns MUSD payment volume into continuous debt reduction, raising borrowers' col
 - Account-owned trove opened: tx 0x73e6312cd962106ef5b07f6a2db4e1e8572580c0d9df9b4b404ebd8c26514940 (block 16762136).
 - 100 MUSD invoice paid by a separate wallet → 75 / 5 / 20; trove debt −20.000000000000000000 MUSD in the same tx: 0x3b9dce365e1ca8b2e043cc663fbc21c24b5f5364a7c90b2cd68be9571a3e5bc7 (block 16762254).
 - Radar quote 12.756783 MUSD → repaid → queue position #165 → #166: 0xea07e53b0a2664cffc796b8e1063c0174979068ef0f200ccd5d810c3bd798c75 (block 16762619).
-- Tests: 15 Foundry unit/fuzz, 4 Foundry tests on live Mezo state, 12 Radar math tests.
+- Existing (wallet-held) Mezo loan: 50 MUSD invoice → 40 to borrower, 10 repaid via Mezo's one-off signature, debt −10.000000 in the same tx: 0x359ee97e8a6964e5354f55576bb667595de5e9f41f453b894d24df94b0462494 (block 16765017). A link signed in the app's format (viem) was then paid: 0xcce41c98e012f25f786857cc7706b12ef1dcb69580f4b9b1f00f20615d56ea0b (block 16772053).
+- Tests: 15 Foundry unit/fuzz, 12 Foundry tests on live Mezo state (4 account/router, 8 adapter), 18 TypeScript tests (Radar math, hedge simulator).
 
 ## Limitations
-Testnet only, unaudited. NFT locked while a loan is active. Exact-amount single-use invoices. Repayments that would cross Mezo's 1,800 MUSD net-debt floor revert the whole payment. Queue position is not a guarantee. Base payments and Morpho hedge: **not built / not verified** (UI says so).
+Testnet only, unaudited. NFT locked while a loan is active. Exact-amount single-use invoices. Repayments that would cross Mezo's 1,800 MUSD net-debt floor revert the whole payment. Queue position is not a guarantee. Base payments: **not available** — Mezo documents its MUSD Wormhole NTT bridge for mainnet only; there is no Mezo testnet / Base Sepolia route to verify (checked 2026-11-14). Morpho hedge: **simulation only** — no Morpho market on Mezo testnet (the mainnet market is BTC collateral / mUSDC loan, the opposite direction). Wallet-loan invoices: one outstanding per borrower at a time (Mezo signature nonces are sequential).
 
 ## Chain deployed
-Mezo testnet (chain 31611). Factory `0x74f918a5C1c8BDDc40CD0Ba8F9935790Fbc5dCCd`, Router `0x2a3Ce214189F62A2f15b58ecFD7c4CfCDa97dF1d`, NFT `0xAa0034E681d208579cFF63A8E2CD298Fc51F3Afa`. No Base Sepolia deployment.
+Mezo testnet (chain 31611). Factory `0x74f918a5C1c8BDDc40CD0Ba8F9935790Fbc5dCCd`, Router `0x2a3Ce214189F62A2f15b58ecFD7c4CfCDa97dF1d`, NFT `0xAa0034E681d208579cFF63A8E2CD298Fc51F3Afa`, RepaymentAdapter `0x096f8C705fce216bdBAEc7f86022117682A9f7DC`. No Base Sepolia deployment.
 
 ## Status / readiness
 Working testnet MVP (Gates A–C verified on-chain; web flow built and tested without a wallet in-browser; wallet flow — TODO: NEEDS VERIFIED RESULT from a browser-wallet run).
@@ -75,7 +77,7 @@ Testnet, unaudited. Ballast does not guarantee protection from redemption or liq
 - **0:35–0:55** — /app/payback: Demo split 20/5/75 → save. /app/invoices: sign a 100 MUSD invoice.
 - **0:55–1:25** — Payer wallet opens link → approve → pay. Show receipt: 75 / 5 / 20 and debt before → after; open the explorer tx.
 - **1:25–1:45** — /app/radar refresh: new block, new debt and NICR; show the before/after (or "no rank change" if that is the truth).
-- **1:45–2:00** — Router is a small interface any checkout can call. Base payments and hedging: not built — on the roadmap.
+- **1:45–2:00** — Existing loans: one-off signed repayment (show the 40 / 10 tx). Router is a small interface any checkout can call. Base payments: no testnet route exists yet; Hedge: labelled simulator.
 
 ## Deck outline
 1. Title & one-liner · 2. Problem (redemption + liquidation, manual repayment) · 3. Solution (account + invoice + atomic split) · 4. Live proof (three tx links) · 5. Radar · 6. Architecture & security · 7. Roadmap · 8. Ask.

@@ -61,3 +61,19 @@ Foundry's EVM does not implement the oracle precompile (`EvmError: NotActivated`
 | Redemption list | SortedTroves | contains/prev/next reads | partial | — | neighbor-only view |
 | Base Sepolia → Mezo testnet MUSD | — | not started (P1) | UNVERIFIED | — | DEFERRED |
 | Morpho BTC borrowing on Mezo testnet | — | not started (P1) | UNVERIFIED | — | Simulation, labeled |
+
+## Signed repayment for wallet-held loans (2026-11-14)
+| Fact | Value | Status | Evidence |
+|---|---|---|---|
+| BorrowerOperationsSignatures proxy | `0xD757e3646AF370b15f32EB557F0F8380Df7D639e` | VERIFIED | `BorrowerOperations.borrowerOperationsSignaturesAddress()`; explorer: TransparentUpgradeableProxy, verified |
+| Implementation | `0xEec635aB00463A4a803DE38C9d858A0FE3bdc235` | VERIFIED | Blockscout `implementations`; source `BorrowerOperationsSignatures`, solc 0.8.24 |
+| `repayMUSDWithSignature(uint256,address,address,address,bytes,uint256)` | selector `0x2cf63a40` | VERIFIED | verified ABI; selector present in deployed bytecode |
+| EIP-712 domain | `("BorrowerOperationsSignatures","1",31611,0xD757…639e)` | VERIFIED | live `eip712Domain()` |
+| Type | `RepayMUSD(uint256 amount,address borrower,uint256 nonce,uint256 deadline)`; per-borrower sequential nonce | VERIFIED | verified source; live use (nonce 0 → 1 → 2) |
+| Whose MUSD is burned | the **caller's** (`_requireSufficientMUSDBalance(_caller, …)`) | VERIFIED | `BorrowerOperations.sol` (musd@da7888a) `_adjustTrove`; live tx burned the adapter's MUSD |
+
+## P1 feasibility (2026-11-14)
+| Requirement | Result | Evidence | Fallback |
+|---|---|---|---|
+| Base Sepolia USDC → Mezo testnet MUSD (Wormhole NTT) | **BLOCKED: no verified route** | Mezo contracts reference (https://mezo.org/docs/users/resources/contracts-reference) lists the MUSD NTT Manager/Transceiver for Mezo, Ethereum and Base **mainnet only**; for testnet it lists only the Mezo testnet MUSD token. No Base Sepolia or Mezo-testnet NTT contracts, no Wormhole chain id for Mezo testnet, no USDC→MUSD swap on Base documented. | Shown as planned in the app; no simulated bridge |
+| Morpho market with BTC as the loan asset on Mezo testnet | **BLOCKED: not found** | docs.morpho.org addresses page: no Mezo entry in the portion read. Mezo docs: Morpho only on mainnet (Morpho Vault V2 `0x06291b67e3d7660240ab44Afc9a708d82b976a8B` supplying a Morpho Blue **BTC collateral / mUSDC loan** market, LLTV 86%), the opposite direction. | `/app/hedge` labelled simulator |

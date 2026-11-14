@@ -29,3 +29,10 @@
 ## 2026-11-14 — Radar: post-repayment ICR + BTC drop scenarios; corrected project description
 - Added post-repayment ICR to quotes/simulation and −10/−20/−30% BTC scenarios (math.ts `droppedPrice`/`scaleIcr`/`eligibilityAtPrice`, snapshot `scenarios` using Mezo `getTCR`/`checkRecoveryMode`). Values match chain exactly at block 16764464 (docs/TEST_EVIDENCE.md).
 - Wrote docs/PROJECT_DESCRIPTION.md: the owner's description corrected to match what is built (removed non-existent `BallastRepaymentAdapter` and shadcn/ui; signed repayment for existing troves, Base payments and Hedge marked Planned; real preset percentages and real Radar numbers). Submission category set to the owner's "Bitcoin-Backed Loan Risk Management".
+
+## 2026-11-14 — Build to the owner's description: existing-loan signed repayment, hedge simulator
+- Owner confirmed their description is the spec. Gaps closed: `BallastRepaymentAdapter` (signed one-off repayment for wallet-held Mezo loans via Mezo `repayMUSDWithSignature`; verified interface, selector, domain and that Mezo burns the caller's MUSD), `/app/existing` + wallet-loan invoice links on `/pay`, interactive synthetic Hedge simulator.
+- Fork tests: 2 initial failures were a test bug (signature built inside the call args made view calls after `vm.expectRevert`); fixed by building signatures first. 8/8 pass.
+- Live: adapter deployed (block 16764880, verified). First minimum-size wallet trove had only ~1.8 MUSD repayable above the 2,000 MUSD floor; borrowed 100 more to create headroom. Two live invoice payments with exact −10 / −2 debt changes.
+- Base: BLOCKED (Mezo MUSD NTT documented for mainnet only). Morpho: BLOCKED (no testnet market; mainnet market is BTC collateral / mUSDC loan). Both shown truthfully in the app, as the description requires.
+- `docs/PROJECT_DESCRIPTION.md` now holds the owner's description verbatim plus an implementation-status/evidence table. Only stack deviation: UI is hand-built on Tailwind, not shadcn/ui.
