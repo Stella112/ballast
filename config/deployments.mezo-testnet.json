@@ -10,7 +10,13 @@
     "SortedTroves": "0x722E4D24FD6Ff8b0AC679450F3D91294607268fA",
     "HintHelpers": "0x4e4cBA3779d56386ED43631b4dCD6d8EacEcBCF6",
     "PriceFeed": "0x86bCF0841622a5dAC14A313a15f96A95421b9366",
-    "BorrowerOperationsSignatures": "0xD757e3646AF370b15f32EB557F0F8380Df7D639e"
+    "BorrowerOperationsSignatures": "0xD757e3646AF370b15f32EB557F0F8380Df7D639e",
+    "WormholeCore": "0x268557122Ffd64c85750d630b716471118F323c8",
+    "WormholeTokenBridge": "0xA31aa3FDb7aF7Db93d18DDA4e19F811342EDF780",
+    "WormholeChainId": 50,
+    "PoolsRouter": "0x9a1ff7FE3a0F69959A3fBa1F1e5ee18e1A9CD7E9",
+    "PoolFactory": "0x4947243CC818b627A5D06d14C4eCe7398A23Ce1A",
+    "MusdBtcPool": "0xd16A5Df82120ED8D626a1a15232bFcE2366d6AA9"
   },
   "ballast": {
     "BallastRouter": "0x2a3Ce214189F62A2f15b58ecFD7c4CfCDa97dF1d",
@@ -32,11 +38,50 @@
       "BallastRepaymentAdapter": {
         "hash": "0x8fefd7dd8602116059eabbac2c575f16fdcbc21856b8cd0b8cb203a2b578afd5",
         "block": 16764880
+      },
+      "Morpho": {
+        "hash": "0x6ca88599a87af54cb4b44fb659ed46d03bdb8bae88088cfc8167a28ad9fb5266",
+        "block": 16772885
+      },
+      "AdaptiveCurveIrm": {
+        "hash": "0x5c81aaae38748126e948eef36cde8987372fb5d9e3ee39b4e6af173ab84a3ee5",
+        "block": 16772890
+      },
+      "BallastMezoOracle": {
+        "hash": "0xfcb28974c94d6583f20cf250db33dce9a3c5ce827b4d0a56de105e10aba6530e",
+        "block": 16772895
+      },
+      "BallastHedgeFactory": {
+        "hash": "0xb721b79c2001b937914860963f823cb3fab5b8c83f8cff089d4b993ed3980846",
+        "block": 16772917
+      },
+      "BallastBridgeReceiver": {
+        "hash": "0x58e8051305c99293101bd499f39193786c55d7616101a314620e15eac3fbda80",
+        "block": 16774152
       }
     },
     "tokenId": 1,
     "BallastAccount": "0xDE61A300ca381463FD6FeCc6b2602980a2Db6323",
     "createAccountTx": "0xc8c82af3b6baf50c7d516e124e2d7ae91dee2c680274caf1bf2f492cac3c7815",
-    "BallastRepaymentAdapter": "0x096f8C705fce216bdBAEc7f86022117682A9f7DC"
+    "BallastRepaymentAdapter": "0x096f8C705fce216bdBAEc7f86022117682A9f7DC",
+    "MorphoBTC": "0x7b7C000000000000000000000000000000000000",
+    "Morpho": "0x3f2Be2a4a16e3fbc55e168B6cC56AA46Ff9cdC93",
+    "AdaptiveCurveIrm": "0xf3e3baD2f52662FDdef1f1C53Ce733E6703cB484",
+    "BallastMezoOracle": "0x301FEEf08C25D2F8AE5EfF95E8f32253006108d9",
+    "MorphoMarketId": "0xffa1cd17869e9f195a2c9f6b218a5f8c3d90251640616b6da62604db0c482573",
+    "BallastHedgeFactory": "0xE6bf4f9C911a5A4dD17062d25A1eCd0DdaA5C39E",
+    "BallastHedge": "0x26df16A52A19C49d7b546c7E2B51b84A12d3aE07",
+    "BallastBridgeReceiver": "0xA28f9D5b2461623492d88a29400A62af627F18D9"
+  },
+  "baseSepolia": {
+    "_provenance": "Verified 2026-11-14: eth_chainId 84532; Wormhole core/token bridge from wormhole.com/docs/reference/contract-addresses and explorer-verified BridgeImplementation; chainId() reads; Mezo bridge bridgeContracts(10004) == this token bridge; USDC symbol/decimals reads.",
+    "chainId": 84532,
+    "rpcUrl": "https://sepolia.base.org",
+    "explorer": "https://base-sepolia.blockscout.com",
+    "USDC": "0x036CbD53842c5426634e7929541eC2318f3dCF7e",
+    "WormholeCore": "0x79A1027a6A159502049F10906D333EC57E95F083",
+    "WormholeTokenBridge": "0x86F55A04690fd7815A3D802bD587e83eA888B239",
+    "WormholeChainId": 10004,
+    "wormholescanApi": "https://api.testnet.wormholescan.io"
   }
 }

@@ -6,14 +6,33 @@ export const cfg = deployments as unknown as {
   chainId: number;
   rpcUrl: string;
   explorer: string;
-  mezo: Record<"MUSD" | "BorrowerOperations" | "BorrowerOperationsSignatures" | "TroveManager" | "SortedTroves" | "HintHelpers" | "PriceFeed", Address>;
+  mezo: Record<"MUSD" | "BorrowerOperations" | "BorrowerOperationsSignatures" | "TroveManager" | "SortedTroves" | "HintHelpers" | "PriceFeed" | "WormholeCore" | "WormholeTokenBridge" | "PoolsRouter" | "PoolFactory" | "MusdBtcPool", Address> & { WormholeChainId: number };
   ballast: {
     BallastRouter: Address;
     BallastAccountNFT: Address;
     BallastFactory: Address;
     BallastRepaymentAdapter: Address;
+    Morpho?: Address;
+    MorphoBTC?: Address;
+    AdaptiveCurveIrm?: Address;
+    BallastMezoOracle?: Address;
+    MorphoMarketId?: `0x${string}`;
+    BallastHedgeFactory?: Address;
+    BallastBridgeReceiver?: Address;
+    BridgedUSDC?: Address;
+    UsdcMusdPool?: Address;
     BallastAccount?: Address;
     tokenId?: number;
+  };
+  baseSepolia: {
+    chainId: number;
+    rpcUrl: string;
+    explorer: string;
+    USDC: Address;
+    WormholeCore: Address;
+    WormholeTokenBridge: Address;
+    WormholeChainId: number;
+    wormholescanApi: string;
   };
 };
 
@@ -35,3 +54,14 @@ export const mezoTestnet = defineChain({
 
 export const txUrl = (hash: string) => `${EXPLORER}/tx/${hash}`;
 export const addrUrl = (a: string) => `${EXPLORER}/address/${a}`;
+
+/** Base Sepolia (only used for paying invoices with USDC through the Wormhole Token Bridge). */
+export const baseSepoliaChain = defineChain({
+  id: 84532,
+  name: "Base Sepolia",
+  nativeCurrency: { name: "Ether", symbol: "ETH", decimals: 18 },
+  rpcUrls: { default: { http: [cfg.baseSepolia.rpcUrl] } },
+  blockExplorers: { default: { name: "Blockscout", url: cfg.baseSepolia.explorer } },
+  testnet: true,
+});
+export const baseTxUrl = (hash: string) => `${cfg.baseSepolia.explorer}/tx/${hash}`;

@@ -11,6 +11,7 @@ import { cfg } from "@/lib/config";
 import { decodeInvoice, invoiceDomain, invoiceIdOf, invoiceTypes } from "@/lib/invoices/invoice";
 import { decodeDirectInvoice } from "@/lib/invoices/direct";
 import { PayDirect } from "@/components/pay-direct";
+import { PayFromBase } from "@/components/pay-base";
 import { computeHints } from "@/lib/mezo/hints";
 import { principalAfterRepay } from "@/lib/radar/math";
 
@@ -138,6 +139,8 @@ function PayInner({ inv }: { inv: NonNullable<ReturnType<typeof decodeInvoice>> 
           <div className="mt-3 space-y-2"><TxStatus state={approveTx.state} /><TxStatus state={payTx.state} /></div>
         </Card>
       </RequireMezo>
+
+      <PayFromBase invoice={{ tokenId, invoiceId, amount, expiry }} sig={inv.sig} acct={acct} repayShare={repayShare} blocked={blockers.length > 0} />
 
       {result && (
         <Card title="Receipt (from on-chain events)">

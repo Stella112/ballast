@@ -28,6 +28,7 @@ j() { python -c "import json,sys;d=json.load(open('$CFG'));print(eval(sys.argv[1
 MUSD=$(j "d['mezo']['MUSD']"); BO=$(j "d['mezo']['BorrowerOperations']"); TM=$(j "d['mezo']['TroveManager']")
 ST=$(j "d['mezo']['SortedTroves']"); HH=$(j "d['mezo']['HintHelpers']"); PF=$(j "d['mezo']['PriceFeed']")
 EXP=$(j "d['explorer']")
+POOLS_ROUTER=0x9a1ff7FE3a0F69959A3fBa1F1e5ee18e1A9CD7E9; POOL_FACTORY=0x4947243CC818b627A5D06d14C4eCe7398A23Ce1A  # Mezo Pools testnet (mezo.org/docs/developers/features/mezo-pools)
 mkdir -p evidence; LOG="evidence/live-$(date -u +%Y%m%d).log"
 log() { echo "[$(date -u +%FT%TZ)] $*" | tee -a "$LOG"; }
 ballast() { j "(d.get('ballast') or {}).get('$1','')"; }
@@ -54,6 +55,84 @@ hints() { # hints <coll wei> <debt wei> -> "upper lower"
   local trials=$(( size < 15 ? 15 : (size * 15 > 500 ? 500 : size * 15) ))
   local approx; approx=$(cast call "$HH" "getApproxHint(uint256,uint256,uint256)(address,uint256,uint256)" "$nicr" "$trials" 42 --rpc-url "$R" | head -1)
   cast call "$ST" "findInsertPosition(uint256,address,address)(address,address)" "$nicr" "$approx" "$approx" --rpc-url "$R" | tr '\n' ' '
+}
+
+cfgset() { # cfgset <key> <value> : write ballast.<key> into the deployment config
+  python -c "import json,sys;f='config/deployments.mezo-testnet.json';c=json.load(open(f));c['ballast'][sys.argv[1]]=sys.argv[2];json.dump(c,open(f,'w'),indent=2)" "$1" "$2"
+}
+
+create() { # create <label> <artifact.json> [ctor-abi-sig ctor-args...] ; async create + receipt poll; sets CREATED
+  local label=$1 art=$2; shift 2
+  local code; code=$(python -c "import json,sys;print(json.load(open(sys.argv[1]))['bytecode']['object'])" "$art")
+  local args=""; if [ $# -gt 0 ]; then args=$(cast abi-encode "$@"); args=${args#0x}; fi
+  local h; h=$(cast send --rpc-url "$R" --private-key "$DEPLOYER_PRIVATE_KEY" --async --create "${code}${args}" | tail -1 | tr -d '[:space:]')
+  log "SUBMITTED create $label hash=$h"
+  local out="" i
+  for i in $(seq 1 60); do out=$(cast receipt "$h" --json --rpc-url "$R" 2>/dev/null) && [ -n "$out" ] && break; sleep 3; done
+  [ -n "$out" ] || { log "NO RECEIPT for $h"; exit 1; }
+  local a b s
+  a=$(echo "$out" | python -c 'import json,sys;print(json.load(sys.stdin)["contractAddress"])')
+  b=$(echo "$out" | python -c 'import json,sys;print(int(json.load(sys.stdin)["blockNumber"],16))')
+  s=$(echo "$out" | python -c 'import json,sys;print(int(json.load(sys.stdin)["status"],16))')
+  log "TX create $label status=$s block=$b hash=$h address=$a $EXP/address/$a"
+  [ "$s" = "1" ] || { log "CREATE FAILED"; exit 1; }
+  a=$(cast to-check-sum-address "$a")
+  cfgset "$label" "$a"
+  python -c "import json,sys;f='config/deployments.mezo-testnet.json';c=json.load(open(f));c['ballast'].setdefault('deployTx',{})[sys.argv[1]]={'hash':sys.argv[2],'block':int(sys.argv[3])};json.dump(c,open(f,'w'),indent=2)" "$label" "$h" "$b"
+  CREATED=$a
+}
+
+mp_tuple() { echo "($(ballast MorphoBTC),$MUSD,$(ballast BallastMezoOracle),$(ballast AdaptiveCurveIrm),860000000000000000)"; }
+
+quote() { # quote <amountIn> <from> <to> <stable>: Mezo Pools router getAmountsOut, last element
+  cast call "$POOLS_ROUTER" "getAmountsOut(uint256,(address,address,bool,address)[])(uint256[])" "$1" "[($2,$3,$4,$POOL_FACTORY)]" --rpc-url "$R" | tr -d '[]' | awk -F', ' '{print $NF}' | cut -d' ' -f1
+}
+
+# ---- Base Sepolia (Wormhole Token Bridge) ----
+BR=$(j "d['baseSepolia']['rpcUrl']"); BEXP=$(j "d['baseSepolia']['explorer']"); BUSDC=$(j "d['baseSepolia']['USDC']")
+BTB=$(j "d['baseSepolia']['WormholeTokenBridge']"); BCORE=$(j "d['baseSepolia']['WormholeCore']"); WSCAN=$(j "d['baseSepolia']['wormholescanApi']")
+MTB=$(j "d['mezo']['WormholeTokenBridge']")
+
+sendb() { # sendb <pkvar> <to> <sig> [args...] on Base Sepolia (chain check), logs hash/block/status, writes evidence/last-base-receipt.json
+  [ "$(cast chain-id --rpc-url "$BR")" = "84532" ] || { echo "refusing: Base RPC is not 84532"; exit 1; }
+  local pkv=$1; shift
+  local h; h=$(cast send --rpc-url "$BR" --private-key "${!pkv}" --async "$@" | tail -1 | tr -d '[:space:]')
+  log "SUBMITTED [base] $2 hash=$h"
+  local out="" i
+  for i in $(seq 1 60); do out=$(cast receipt "$h" --json --rpc-url "$BR" 2>/dev/null) && [ -n "$out" ] && break; sleep 3; done
+  [ -n "$out" ] || { log "NO RECEIPT [base] $h"; exit 1; }
+  local b st
+  b=$(echo "$out" | python -c 'import json,sys;print(int(json.load(sys.stdin)["blockNumber"],16))')
+  st=$(echo "$out" | python -c 'import json,sys;print(int(json.load(sys.stdin)["status"],16))')
+  log "TX [base] $2 status=$st block=$b hash=$h $BEXP/tx/$h"
+  [ "$st" = "1" ] || { log "TX FAILED"; exit 1; }
+  echo "$out" > evidence/last-base-receipt.json
+}
+
+wh_sequence() { # sequence of the token bridge's LogMessagePublished in the last Base receipt
+  python - "$BCORE" "$BTB" <<'EOF'
+import json,sys
+core,tb=sys.argv[1].lower(),sys.argv[2].lower()
+r=json.load(open("evidence/last-base-receipt.json"))
+T="0x6eb224fb001ed210e379b335e35efe88672a8ce935d981a6896b27ffdf52a3b2"
+for l in r["logs"]:
+    if l["address"].lower()==core and l["topics"][0].lower()==T and l["topics"][1][-40:].lower()==tb[2:]:
+        print(int(l["data"][2:66],16)); break
+EOF
+}
+
+wh_vaa() { # wh_vaa <sequence>: poll Wormholescan until the guardian-signed VAA exists; prints hex
+  local seq=$1 em; em=$(python -c "print('0'*24+'$BTB'[2:].lower())")
+  local i
+  for i in $(seq 1 240); do
+    local v; v=$(curl -s "$WSCAN/api/v1/vaas/10004/$em/$seq" | python -c 'import json,sys,base64
+try:
+  d=json.load(sys.stdin)["data"]["vaa"]; print("0x"+base64.b64decode(d).hex())
+except Exception: pass')
+    if [ -n "$v" ]; then echo "$v"; return 0; fi
+    sleep 15
+  done
+  return 1
 }
 
 state() {
@@ -168,6 +247,145 @@ EOF
   send PAYER_PRIVATE_KEY "$RT" "payInvoice((uint256,bytes32,uint256,uint256),bytes,address,address)" "($T,$IID,$AMT,$EXPIRY)" "$SIG" "$UP" "$LO"
   log "  AFTER payout MUSD=$(cast call "$MUSD" "balanceOf(address)(uint256)" "$PAYOUT" --rpc-url "$R")"
   log "  invoicePaid=$(cast call "$RT" "invoicePaid(uint256,bytes32)(bool)" "$T" "$IID" --rpc-url "$R")"
+  state
+  ;;
+base-preflight)
+  log "BASE-PREFLIGHT chain=$(cast chain-id --rpc-url "$BR") payer ETH=$(cast balance "$PAYER_ADDRESS" --ether --rpc-url "$BR") USDC=$(cast call "$BUSDC" "balanceOf(address)(uint256)" "$PAYER_ADDRESS" --rpc-url "$BR")"
+  log "  Mezo bridge bridgeContracts(10004)=$(cast call "$MTB" "bridgeContracts(uint16)(bytes32)" 10004 --rpc-url "$R") wrapped USDC=$(cast call "$MTB" "wrappedAsset(uint16,bytes32)(address)" 10004 "$(cast to-bytes32 "$BUSDC" 2>/dev/null || python -c "print('0x'+'0'*24+'$BUSDC'[2:])")" --rpc-url "$R")"
+  ;;
+base-attest) # one-time: register Base Sepolia USDC with Wormhole and create its wrapped token on Mezo
+  FEE=$(cast call "$BCORE" "messageFee()(uint256)" --rpc-url "$BR" | cut -d' ' -f1)
+  sendb PAYER_PRIVATE_KEY "$BTB" "attestToken(address,uint32)" "$BUSDC" "$RANDOM" --value "$FEE"
+  SEQ=$(wh_sequence); log "  attest sequence=$SEQ; waiting for guardians"
+  V=$(wh_vaa "$SEQ") || { log "VAA not available yet for seq $SEQ"; exit 1; }
+  log "  VAA received (${#V} hex chars)"
+  send PAYER_PRIVATE_KEY "$MTB" "createWrapped(bytes)" "$V"
+  W=$(cast to-check-sum-address "$(cast call "$MTB" "wrappedAsset(uint16,bytes32)(address)" 10004 "0x000000000000000000000000${BUSDC:2}" --rpc-url "$R")")
+  cfgset BridgedUSDC "$W"
+  log "  wrapped USDC on Mezo=$W name=$(cast call "$W" "name()(string)" --rpc-url "$R") decimals=$(cast call "$W" "decimals()(uint8)" --rpc-url "$R")"
+  ;;
+base-bridge) # base-bridge <USDC>: payer moves USDC from Base Sepolia to its own address on Mezo (plain transfer)
+  AMT=$(python -c "print(int(float('$1')*10**6))"); FEE=$(cast call "$BCORE" "messageFee()(uint256)" --rpc-url "$BR" | cut -d' ' -f1)
+  sendb PAYER_PRIVATE_KEY "$BUSDC" "approve(address,uint256)" "$BTB" "$AMT"
+  sendb PAYER_PRIVATE_KEY "$BTB" "transferTokens(address,uint256,uint16,bytes32,uint256,uint32)" "$BUSDC" "$AMT" 50 "0x000000000000000000000000${PAYER_ADDRESS:2}" 0 "$RANDOM" --value "$FEE"
+  SEQ=$(wh_sequence); log "  transfer sequence=$SEQ; waiting for guardians"
+  V=$(wh_vaa "$SEQ") || { log "VAA not available yet for seq $SEQ"; exit 1; }
+  send PAYER_PRIVATE_KEY "$MTB" "completeTransfer(bytes)" "$V"
+  log "  payer wrapped USDC on Mezo=$(cast call "$(ballast BridgedUSDC)" "balanceOf(address)(uint256)" "$PAYER_ADDRESS" --rpc-url "$R")"
+  ;;
+create-usdc-pool) # create-usdc-pool <USDC> <MUSD>: payer creates the stable wUSDC/MUSD pool and seeds it (labelled: seeded by Ballast)
+  W=$(ballast BridgedUSDC); UA=$(python -c "print(int(float('$1')*10**6))"); MA=$(cast to-wei "$2")
+  P=$(cast call "$POOL_FACTORY" "getPool(address,address,bool)(address)" "$W" "$MUSD" true --rpc-url "$R")
+  [ "$P" != "0x0000000000000000000000000000000000000000" ] || send PAYER_PRIVATE_KEY "$POOL_FACTORY" "createPool(address,address,bool)" "$W" "$MUSD" true
+  P=$(cast to-check-sum-address "$(cast call "$POOL_FACTORY" "getPool(address,address,bool)(address)" "$W" "$MUSD" true --rpc-url "$R")")
+  cfgset UsdcMusdPool "$P"
+  send PAYER_PRIVATE_KEY "$W" "approve(address,uint256)" "$POOLS_ROUTER" "$UA"
+  send PAYER_PRIVATE_KEY "$MUSD" "approve(address,uint256)" "$POOLS_ROUTER" "$MA"
+  send PAYER_PRIVATE_KEY "$POOLS_ROUTER" "addLiquidity(address,address,bool,uint256,uint256,uint256,uint256,address,uint256)" "$W" "$MUSD" true "$UA" "$MA" 0 0 "$PAYER_ADDRESS" $(( $(date -u +%s) + 1800 ))
+  log "  pool=$P reserves=$(cast call "$P" "getReserves()(uint256,uint256,uint256)" --rpc-url "$R" | tr '\n' ' ')"
+  ;;
+deploy-receiver)
+  [ -z "$(ballast BallastBridgeReceiver)" ] || { echo "receiver already deployed per $CFG; refusing to overwrite"; exit 1; }
+  forge build >/dev/null
+  create BallastBridgeReceiver out/BallastBridgeReceiver.sol/BallastBridgeReceiver.json "c(address,uint16,bytes32,address,address,address,address)" "$MTB" 10004 "0x000000000000000000000000${BUSDC:2}" "$POOLS_ROUTER" "$POOL_FACTORY" "$MUSD" "$(ballast BallastRouter)"
+  log "  wrappedUsdc()=$(cast call "$(ballast BallastBridgeReceiver)" "wrappedUsdc()(address)" --rpc-url "$R")"
+  ;;
+pay-base-invoice) # pay-base-invoice <MUSD>: merchant (deployer) signs a Ballast invoice; payer pays it with USDC from Base Sepolia
+  AMT=$(cast to-wei "$1"); A=$(ballast BallastAccount); RT=$(ballast BallastRouter); T=$(ballast tokenId); RCV=$(ballast BallastBridgeReceiver); W=$(ballast BridgedUSDC)
+  IID=$(cast keccak "ballast-base-invoice-$(date -u +%s)"); EXPIRY=$(( $(date -u +%s) + 7200 ))
+  cat > evidence/invoice.json <<EOF2
+{"types":{"EIP712Domain":[{"name":"name","type":"string"},{"name":"version","type":"string"},{"name":"chainId","type":"uint256"},{"name":"verifyingContract","type":"address"}],
+"Invoice":[{"name":"tokenId","type":"uint256"},{"name":"invoiceId","type":"bytes32"},{"name":"amount","type":"uint256"},{"name":"expiry","type":"uint256"}]},
+"primaryType":"Invoice","domain":{"name":"BallastRouter","version":"1","chainId":31611,"verifyingContract":"$RT"},
+"message":{"tokenId":$T,"invoiceId":"$IID","amount":"$AMT","expiry":$EXPIRY}}
+EOF2
+  SIG=$(cast wallet sign --data --from-file evidence/invoice.json --private-key "$DEPLOYER_PRIVATE_KEY")
+  USDC_AMT=$(python -c "print(($AMT//10**12+1)*10100//10000+1)")
+  Q=$(quote "$USDC_AMT" "$W" "$MUSD" true)
+  log "BASE-INVOICE tokenId=$T invoiceId=$IID amount=$AMT expiry=$EXPIRY usdcSent=$USDC_AMT poolQuoteMUSD=$Q receiver=$RCV"
+  PAYLOAD=$(cast call "$RCV" "encodePayload((uint8,(uint256,bytes32,uint256,uint256),bytes,address,uint256))(bytes)" "(1,($T,$IID,$AMT,$EXPIRY),$SIG,$PAYER_ADDRESS,$AMT)" --rpc-url "$R")
+  FEE=$(cast call "$BCORE" "messageFee()(uint256)" --rpc-url "$BR" | cut -d' ' -f1)
+  state
+  sendb PAYER_PRIVATE_KEY "$BUSDC" "approve(address,uint256)" "$BTB" "$USDC_AMT"
+  sendb PAYER_PRIVATE_KEY "$BTB" "transferTokensWithPayload(address,uint256,uint16,bytes32,uint32,bytes)" "$BUSDC" "$USDC_AMT" 50 "0x000000000000000000000000${RCV:2}" "$RANDOM" "$PAYLOAD" --value "$FEE"
+  SEQ=$(wh_sequence); log "  Wormhole sequence=$SEQ (emitter Base Sepolia token bridge); waiting for guardians"
+  V=$(wh_vaa "$SEQ") || { log "VAA not available yet for seq $SEQ — rerun settle-base $SEQ later"; exit 1; }
+  echo "$SEQ" > evidence/last-base-seq.txt
+  "$0" settle-base "$SEQ"
+  ;;
+settle-base) # settle-base <sequence>: anyone (payer here) submits the VAA to BallastBridgeReceiver on Mezo
+  SEQ=$1; RCV=$(ballast BallastBridgeReceiver); A=$(ballast BallastAccount)
+  V=$(wh_vaa "$SEQ") || { log "VAA not available for seq $SEQ"; exit 1; }
+  COLL=$(cast call "$TM" "getTroveColl(address)(uint256)" "$A" --rpc-url "$R" | cut -d' ' -f1)
+  P=$(cast call "$TM" "getTrovePrincipal(address)(uint256)" "$A" --rpc-url "$R" | cut -d' ' -f1)
+  read -r UP LO <<<"$(hints "$COLL" "$P")"
+  log "SETTLE-BASE seq=$SEQ hints=$UP,$LO payout MUSD before=$(cast call "$MUSD" "balanceOf(address)(uint256)" "$(cast call "$A" "payoutAddress()(address)" --rpc-url "$R")" --rpc-url "$R")"
+  send PAYER_PRIVATE_KEY "$RCV" "settle(bytes,address,address)" "$V" "$UP" "$LO" --gas-limit 3500000
+  log "  payout MUSD after=$(cast call "$MUSD" "balanceOf(address)(uint256)" "$(cast call "$A" "payoutAddress()(address)" --rpc-url "$R")" --rpc-url "$R") receiver MUSD=$(cast call "$MUSD" "balanceOf(address)(uint256)" "$RCV" --rpc-url "$R")"
+  state
+  ;;
+deploy-hedge-stack) # Morpho Blue v1.0.0 + AdaptiveCurveIrm (upstream bytecode) + Mezo oracle + market + BallastHedgeFactory
+  [ -z "$(ballast Morpho)" ] || { echo "hedge stack already deployed per $CFG; refusing to overwrite"; exit 1; }
+  [ -f .upstream/morpho-blue/out/Morpho.sol/Morpho.json ] || scripts/fetch-morpho.sh
+  forge build >/dev/null
+  cfgset MorphoBTC 0x7b7C000000000000000000000000000000000000
+  create Morpho .upstream/morpho-blue/out/Morpho.sol/Morpho.json "c(address)" "$DEPLOYER_ADDRESS"; MO=$CREATED
+  create AdaptiveCurveIrm .upstream/morpho-blue-irm/out/AdaptiveCurveIrm.sol/AdaptiveCurveIrm.json "c(address)" "$MO"
+  create BallastMezoOracle out/BallastMezoOracle.sol/BallastMezoOracle.json "c(address)" "$PF"
+  log "  oracle.price()=$(cast call "$(ballast BallastMezoOracle)" "price()(uint256)" --rpc-url "$R") PriceFeed=$(cast call "$PF" "fetchPrice()(uint256)" --rpc-url "$R")"
+  send DEPLOYER_PRIVATE_KEY "$MO" "enableIrm(address)" "$(ballast AdaptiveCurveIrm)"
+  send DEPLOYER_PRIVATE_KEY "$MO" "enableLltv(uint256)" 860000000000000000
+  send DEPLOYER_PRIVATE_KEY "$MO" "createMarket((address,address,address,address,uint256))" "$(mp_tuple)"
+  MID=$(cast keccak "$(cast abi-encode "f((address,address,address,address,uint256))" "$(mp_tuple)")")
+  cfgset MorphoMarketId "$MID"
+  log "  marketId=$MID market=$(cast call "$MO" "market(bytes32)(uint128,uint128,uint128,uint128,uint128,uint128)" "$MID" --rpc-url "$R" | tr '\n' ' ')"
+  create BallastHedgeFactory out/BallastHedge.sol/BallastHedgeFactory.json "c(address,address,(address,address,address,address,uint256),address,address)" "$(ballast BallastFactory)" "$MO" "$(mp_tuple)" "$POOLS_ROUTER" "$POOL_FACTORY"
+  ;;
+supply-btc) # supply-btc <BTC>: deployer lends BTC to the Ballast Morpho market (the market's only liquidity)
+  AMT=$(cast to-wei "$1"); MO=$(ballast Morpho)
+  send DEPLOYER_PRIVATE_KEY "$(ballast MorphoBTC)" "approve(address,uint256)" "$MO" "$AMT"
+  send DEPLOYER_PRIVATE_KEY "$MO" "supply((address,address,address,address,uint256),uint256,uint256,address,bytes)" "$(mp_tuple)" "$AMT" 0 "$DEPLOYER_ADDRESS" 0x
+  "$0" hedge-state
+  ;;
+withdraw-musd) # withdraw-musd <to> <MUSD>: controller withdraws free MUSD from the Ballast account
+  send DEPLOYER_PRIVATE_KEY "$(ballast BallastAccount)" "withdrawMUSD(address,uint256)" "$1" "$(cast to-wei "$2")"
+  ;;
+hedge-create)
+  HF=$(ballast BallastHedgeFactory); T=$(ballast tokenId)
+  send DEPLOYER_PRIVATE_KEY "$HF" "create(uint256)" "$T"
+  H=$(cast to-check-sum-address "$(cast call "$HF" "hedgeOf(uint256)(address)" "$T" --rpc-url "$R")")
+  cfgset BallastHedge "$H"
+  log "  hedge for token $T = $H controller=$(cast call "$H" "controller()(address)" --rpc-url "$R")"
+  ;;
+hedge-state)
+  MO=$(ballast Morpho); MID=$(ballast MorphoMarketId); H=$(ballast BallastHedge); blk=$(cast block-number --rpc-url "$R")
+  log "HEDGE-STATE @block $blk market(totalSupply,supplyShares,totalBorrow,borrowShares,lastUpdate,fee)=$(cast call "$MO" "market(bytes32)(uint128,uint128,uint128,uint128,uint128,uint128)" "$MID" --rpc-url "$R" -b "$blk" | tr '\n' ' ')"
+  log "  oracle.price=$(cast call "$(ballast BallastMezoOracle)" "price()(uint256)" --rpc-url "$R" -b "$blk") PriceFeed=$(cast call "$PF" "fetchPrice()(uint256)" --rpc-url "$R" -b "$blk")"
+  if [ -n "$H" ]; then log "  hedge $H position(collateral,borrowShares,btcOwed)=$(cast call "$H" "positionInfo()(uint256,uint256,uint256)" --rpc-url "$R" -b "$blk" | tr '\n' ' ') MUSD=$(cast call "$MUSD" "balanceOf(address)(uint256)" "$H" --rpc-url "$R" -b "$blk") BTC=$(cast call "$(ballast MorphoBTC)" "balanceOf(address)(uint256)" "$H" --rpc-url "$R" -b "$blk")"; fi
+  ;;
+hedge-open) # hedge-open <collateralMUSD> <borrowBTC>: controller (deployer) opens the short
+  C=$(cast to-wei "$1"); B=$(cast to-wei "$2"); H=$(ballast BallastHedge); BTC=$(ballast MorphoBTC)
+  Q=$(quote "$B" "$BTC" "$MUSD" false); MIN=$(python -c "print($Q*99//100)")
+  log "HEDGE-OPEN collateral=$C borrowBTC=$B quoteMUSD=$Q minOut=$MIN"
+  "$0" hedge-state
+  send DEPLOYER_PRIVATE_KEY "$MUSD" "approve(address,uint256)" "$H" "$C"
+  send DEPLOYER_PRIVATE_KEY "$H" "open(uint256,uint256,uint256)" "$C" "$B" "$MIN"
+  "$0" hedge-state
+  ;;
+hedge-close) # buys back with proceeds (+ top-up from the controller if needed), repays Morpho, withdraws collateral
+  H=$(ballast BallastHedge); BTC=$(ballast MorphoBTC); MO=$(ballast Morpho)
+  send DEPLOYER_PRIVATE_KEY "$MO" "accrueInterest((address,address,address,address,uint256))" "$(mp_tuple)"
+  OWED=$(cast call "$H" "positionInfo()(uint256,uint256,uint256)" --rpc-url "$R" | sed -n 3p | cut -d' ' -f1)
+  HELD=$(cast call "$MUSD" "balanceOf(address)(uint256)" "$H" --rpc-url "$R" | cut -d' ' -f1)
+  NEED=$(quote "$(python -c "print($OWED*102//100)")" "$BTC" "$MUSD" false)
+  TOP=$(python -c "print(max(0,$NEED-$HELD))"); IN=$(python -c "print($HELD+$TOP)")
+  log "HEDGE-CLOSE owedBTC=$OWED heldMUSD=$HELD spendMUSD=$IN topUp=$TOP minBtcOut=$OWED"
+  [ "$TOP" = "0" ] || send DEPLOYER_PRIVATE_KEY "$MUSD" "approve(address,uint256)" "$H" "$TOP"
+  send DEPLOYER_PRIVATE_KEY "$H" "close(uint256,uint256,uint256)" "$IN" "$OWED" "$TOP"
+  "$0" hedge-state
+  ;;
+hedge-to-account)
+  send DEPLOYER_PRIVATE_KEY "$(ballast BallastHedge)" "sendToAccount()"
   state
   ;;
 deploy-adapter)
