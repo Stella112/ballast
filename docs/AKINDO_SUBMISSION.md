@@ -93,7 +93,7 @@ Local file `docs/video/ballast-demo.mp4` (not committed), built from `video/` (R
 4. **0:57** Redemption Radar on the live site.
 5. **1:13** Keeper, and the cap at Mezo's minimum debt.
 6. **1:28** The account sold whole through an escrow contract.
-7. **1:43** The hedge opened and closed by the account, with the real transactions.
+7. **1:43** The hedge opened and closed by the account, with the real transactions. (The video was recorded before the simulated BTC-drop card was removed from the app; it appears briefly here, labelled SIMULATED. The live app now shows only real data.)
 8. **2:04** Pay from Base: USDC proven live, MUSD over NTT built and waiting on the guardians.
 9. **2:23** Limits, then the close.
 
