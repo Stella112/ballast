@@ -73,7 +73,7 @@ Threat model: docs/SECURITY.md. NFT-holder-only control; the router and keeper c
 - Testnet only, unaudited. Mezo's minimum loan is about 2,000 MUSD.
 - **Pay from Base:** the USDC route over Wormhole's token bridge is proven live, but the USDC/MUSD pool on Mezo testnet was **created and seeded by Ballast** and is small (a few MUSD per payment). The MUSD route over Wormhole NTT is built, deployed and tested against live Base Sepolia, but **has not run end to end**: the testnet guardian has not signed the transfer that puts MUSD on Base for the demo payer.
 - **Morpho Blue on Mezo testnet was deployed by Ballast** (unmodified v1.0.0) and its BTC liquidity was supplied by Ballast.
-- The hedge reduces risk but cannot remove it; it can lose money and be liquidated. The BTC-drop scenario is a labelled SIMULATED calculation.
+- The hedge reduces risk but cannot remove it; it can lose money and be liquidated. Only real transactions are shown: a BTC price drop cannot be caused on testnet, so the app does not present one.
 - The hedge position sits in a small per-account module contract that only the account and its NFT holder can use.
 - Redemption position is a snapshot, not a guarantee. Demand is unproven.
 - The app's wallet flows have been exercised by scripts and contract tests; a browser-wallet run is the owner's final check.
@@ -93,7 +93,7 @@ Local file `docs/video/ballast-demo.mp4` (not committed), built from `video/` (R
 4. **0:57** Redemption Radar on the live site.
 5. **1:13** Keeper, and the cap at Mezo's minimum debt.
 6. **1:28** The account sold whole through an escrow contract.
-7. **1:43** The hedge opened and closed by the account; the BTC drop labelled SIMULATED.
+7. **1:43** The hedge opened and closed by the account, with the real transactions.
 8. **2:04** Pay from Base: USDC proven live, MUSD over NTT built and waiting on the guardians.
 9. **2:23** Limits, then the close.
 

@@ -17,7 +17,7 @@ No admin keys are needed. You need a browser wallet with **two accounts** (merch
 6. **Payer** opens the pay link: enter 100 MUSD and a reference → *Approve* → *Pay*. The receipt shows the split and the collateral ratio before and after, from the transaction's event.
 7. **Keeper**: send MUSD straight to the account address from any wallet. **/app** shows it under *Income waiting for your policy*; anyone can press *Apply policy now*.
 8. **Pay from Base Sepolia**: Owner → /app/invoices signs a small invoice (2–3 MUSD; the seeded pool is small). Payer opens it and uses *Or pay with USDC on Base Sepolia*: approve and send on Base, wait for the guardians (several minutes; the page keeps checking), then *Settle on Mezo*.
-9. **Hedge → /app/hedge**: *Create hedge module*, open a short (e.g. 80 MUSD collateral, 0.0005 BTC), close it, *Send to my Ballast account*. The last card is the labelled SIMULATED BTC drop.
+9. **Hedge → /app/hedge**: *Create hedge module*, open a short (e.g. 80 MUSD collateral, 0.0005 BTC), close it, *Send to my Ballast account*.
 10. **Transfer (optional) → /app**: *Transfer this account* hands the NFT, and with it the loan, to another wallet.
 
 ## Existing Mezo loan (wallet-held, optional)

@@ -23,17 +23,17 @@ export default function DemoPage() {
           <li>A browser wallet (e.g. MetaMask) with <strong>two accounts</strong>: a merchant and a payer. No admin keys are involved anywhere.</li>
           <li>Testnet BTC for gas (and for collateral on the merchant) from <a className="underline" href="https://faucet.test.mezo.org/" target="_blank" rel="noreferrer">faucet.test.mezo.org</a>.</li>
           <li>Testnet MUSD for the payer: the merchant can borrow it from their own trove and send it, or mint via <a className="underline" href="https://testnet.mezo.org" target="_blank" rel="noreferrer">testnet.mezo.org</a>.</li>
-          <li>Opening a trove needs ≥ 1,800 MUSD net debt plus a 200 MUSD gas deposit — at ~68k MUSD/BTC that means roughly 0.05 BTC collateral at ~150% ratio.</li>
+          <li>Opening a loan needs at least 1,800 MUSD of net debt plus a 200 MUSD gas deposit. At about 65,000 MUSD per BTC that is roughly 0.05 BTC of collateral at a 150% ratio.</li>
         </ul>
       </Card>
       <Card title="Run it fresh">
         <ol className="list-decimal space-y-2 pl-5 text-sm">
-          <li><Link className="underline" href="/app">Account</Link> (merchant wallet): create account → open trove.</li>
-          <li><Link className="underline" href="/app/payback">Payback</Link>: pick “Demo split” (20/5/75) → save.</li>
-          <li><Link className="underline" href="/app/radar">Radar</Link>: note your position, NICR and quotes.</li>
-          <li><Link className="underline" href="/app/invoices">Invoices</Link>: sign a 100 MUSD invoice → copy the link.</li>
-          <li>Switch to the payer wallet, open the link: approve → pay. The receipt shows the split and the merchant&apos;s debt before/after from on-chain events.</li>
+          <li><Link className="underline" href="/app">Account</Link> (merchant wallet): create the account, then open a loan.</li>
+          <li><Link className="underline" href="/app/payback">Payback</Link>: pick “Keep my BTC” (20% repay / 5% hedge / 75% you) and save it on-chain.</li>
+          <li><Link className="underline" href="/app/radar">Radar</Link>: note your place in the redemption line, the MUSD ahead of you and the quotes.</li>
+          <li>Switch to the payer wallet and open the pay link <Link className="underline" href="/pay/a/1">/pay/a/&lt;your account number&gt;</Link>: approve, then pay 100 MUSD. The receipt shows the split and the collateral ratio before and after, read from the transaction&apos;s events.</li>
           <li>Back as merchant: Radar and <Link className="underline" href="/app/activity">Activity</Link> show the new state at a newer block.</li>
+          <li>Optional: <Link className="underline" href="/app/hedge">Hedge</Link> (set it up, open a short from the hedge reserve, close it), or transfer the account to another wallet from the Account page.</li>
         </ol>
       </Card>
       <Card title="Past run on Mezo testnet" right={<Badge tone="neutral">Recorded 2026-11-15 · not live state</Badge>}>

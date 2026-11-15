@@ -55,7 +55,7 @@ export function useTx() {
 
 export function TxStatus({ state }: { state: TxState }) {
   if (state.s === "idle") return null;
-  if (state.s === "wallet") return <Notice tone="neutral">Simulating, then confirm in your wallet…</Notice>;
+  if (state.s === "wallet") return <Notice tone="neutral">Checking the transaction, then confirm in your wallet…</Notice>;
   if (state.s === "pending") return <Notice tone="warn">Submitted — waiting for confirmation. <TxLink hash={state.hash} /></Notice>;
   if (state.s === "ok") return <Notice tone="ok">Confirmed in block {state.receipt.blockNumber.toString()} (status 1). <TxLink hash={state.hash} /></Notice>;
   if (state.s === "reverted") return <Notice tone="bad">Transaction reverted in block {state.receipt.blockNumber.toString()}. <TxLink hash={state.hash} /></Notice>;

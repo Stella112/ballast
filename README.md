@@ -34,7 +34,7 @@ Full evidence with block numbers and before/after reads: [docs/TEST_EVIDENCE.md]
 5. **Keeper** — MUSD that lands in the account directly waits as "income"; anyone can call `processIncome` to apply your policy. The caller chooses nothing.
 6. **Cap** — repayments stop at Mezo's minimum debt (about 2,000 MUSD); the excess goes to you.
 7. **Radar** — reads Mezo's sorted loan list at one block and shows your position, the MUSD ahead of you, the repayment needed to pass 1 / 10 / 50 loans, your liquidation price, and what each real repayment changed.
-8. **Hedge (optional)** — the account takes MUSD from its hedge reserve, posts it on Morpho Blue, borrows BTC and sells it on Mezo Pools; closing buys it back, repays the loan with any gain and returns the rest to the reserve. A BTC drop is shown only as a labelled SIMULATED calculation.
+8. **Hedge (optional)** — the account takes MUSD from its hedge reserve, posts it on Morpho Blue, borrows BTC and sells it on Mezo Pools; closing buys it back, repays the loan with any gain and returns the rest to the reserve.
 9. **Existing loans** — a loan held by your wallet can't move in; Ballast uses Mezo's own one-off signed repayment for it.
 
 ## Deployed (Mezo testnet, v3)

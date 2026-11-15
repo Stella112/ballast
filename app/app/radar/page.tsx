@@ -27,14 +27,12 @@ type Radar = {
     targets: { pass: number; target?: string; targetNicr?: string; quote?: Quote }[];
     scenarios: Scenario[];
   };
-  simulation?: { amount: string; exceedsFloor: boolean; maxRepayable: string; newNicr: string; newIcr?: string; currentIcr: string; newPosFromTail: number; ties: number; currentPosFromTail: number };
   error?: string;
 };
 
-async function fetchRadar(account: string, opts: { fresh?: boolean; simulate?: bigint } = {}): Promise<Radar> {
+async function fetchRadar(account: string, opts: { fresh?: boolean } = {}): Promise<Radar> {
   const q = new URLSearchParams({ account });
   if (opts.fresh) q.set("fresh", "1");
-  if (opts.simulate !== undefined) q.set("simulate", opts.simulate.toString());
   const r = await fetch(`/api/radar?${q}`, { cache: "no-store" });
   const j = await r.json();
   if (!r.ok) throw new Error(j.error ?? "radar read failed");
@@ -61,9 +59,6 @@ function RadarView({ s, refetchAccount }: { s: AccountState; refetchAccount: () 
   const [before, setBefore] = useState<Radar | null>(null);
   const [after, setAfter] = useState<Radar | null>(null);
   const [lastTx, setLastTx] = useState<string>();
-  const [sim, setSim] = useState("");
-  const [simRes, setSimRes] = useState<Radar["simulation"]>();
-  const [simErr, setSimErr] = useState<string>();
   const { address } = useAccount();
   const client = usePublicClient();
   const tx = useTx();
@@ -169,63 +164,6 @@ function RadarView({ s, refetchAccount }: { s: AccountState; refetchAccount: () 
         )}
       </Card>
 
-      <Card title="If BTC falls…" right={<Badge tone="sim">Projection</Badge>}>
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-[640px] text-sm">
-            <thead className="text-left text-xs uppercase text-muted">
-              <tr><th className="py-2">BTC move</th><th className="text-right">BTC price</th><th className="text-right">Your ICR</th><th>Your trove</th><th>System (Mezo)</th></tr>
-            </thead>
-            <tbody className="num">
-              {me.scenarios.map((x) => (
-                <tr key={x.dropBps} className="border-t border-border align-top">
-                  <td className="py-2">{x.dropBps === "0" ? "Now" : `−${Number(x.dropBps) / 100}%`}</td>
-                  <td className="text-right">{fmt(x.price, 18, 0)}</td>
-                  <td className="text-right">{pct(x.myIcr)}</td>
-                  <td className="pl-4">
-                    {x.liquidatable ? <Badge tone="bad">Liquidatable (ICR &lt; {pct(d.mcr)})</Badge>
-                      : allOk && x.eligibleRank ? <span>Redemption order #{x.eligibleRank} of {x.eligibleCount} eligible</span>
-                      : <span className="text-muted">—</span>}
-                    {x.liquidatableCount > 0 && <div className="text-xs text-muted">{x.liquidatableCount} trove(s) below {pct(d.mcr)}</div>}
-                  </td>
-                  <td>
-                    <div>TCR {pct(x.tcr)}</div>
-                    {x.redemptionsPaused ? <Badge tone="bad">Redemptions paused (TCR &lt; {pct(d.mcr)})</Badge>
-                      : x.recoveryMode ? <Badge tone="warn">Recovery mode (TCR &lt; 150%)</Badge>
-                      : <span className="text-xs text-muted">Normal mode</span>}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-        <p className="mt-2 text-xs text-muted">
-          Same block as the snapshot; only the BTC price changes. Your ICR uses your current debt and collateral. System TCR and recovery mode come from Mezo&apos;s own
-          <code className="mx-1">getTCR</code>/<code className="mx-1">checkRecoveryMode</code> at each price. Redemption order assumes no other trove is liquidated or adjusted first —
-          a real price fall would change the list. Not a forecast or a guarantee.
-        </p>
-      </Card>
-
-      <Card title="What if I repay…">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
-          <Field label="Amount (MUSD)"><input className={inputCls} inputMode="decimal" value={sim} onChange={(e) => setSim(e.target.value)} placeholder="e.g. 25" /></Field>
-          <Button variant="secondary" onClick={async () => {
-            setSimErr(undefined);
-            try { setSimRes((await fetchRadar(s.account, { simulate: parseUnits(sim || "0", 18) })).simulation); } catch (e) { setSimErr((e as Error).message); }
-          }}>Simulate</Button>
-        </div>
-        {simErr && <div className="mt-3"><Notice tone="bad">{simErr}</Notice></div>}
-        {simRes && (
-          <div className="mt-3 text-sm">
-            {simRes.exceedsFloor ? <Notice tone="warn">Exceeds the repayable maximum ({fmt(simRes.maxRepayable)} MUSD) — Mezo would revert. Reaching further requires closing the trove.</Notice> : (
-              <div className="space-y-1 num">
-                <p>Projected position: #{simRes.currentPosFromTail} → <strong>#{simRes.newPosFromTail}</strong> (NICR {simRes.newNicr}){simRes.ties > 0 && ` · ${simRes.ties} trove(s) tie at this NICR; order between ties is not guaranteed`}.</p>
-                {simRes.newIcr && <p>Collateral ratio (ICR): {pct(simRes.currentIcr)} → <strong>{pct(simRes.newIcr)}</strong> at {fmt(d.price)} MUSD/BTC.</p>}
-                <p className="text-xs text-muted">Simulation at the same snapshot; nothing is sent.</p>
-              </div>
-            )}
-          </div>
-        )}
-      </Card>
     </>
   );
 }

@@ -100,7 +100,7 @@ A small BTC short inside the account that pays toward the loan when BTC falls, w
 3. If BTC falls, buying the BTC back costs less; on close, the difference goes toward the loan.
 4. If BTC rises, the hedge loses a little, while the BTC backing the loan gains more.
 
-For a borrower this is protection, not a bet. Borrowing stays small so the hedge itself sits far from liquidation. A BTC price drop cannot be caused on testnet, so the drop scenario in the demo is clearly labelled SIMULATED; opening and closing the hedge are real transactions.
+For a borrower this is protection, not a bet. Borrowing stays small so the hedge itself sits far from liquidation. Opening and closing the hedge are real transactions. A BTC price drop cannot be caused on testnet, so the app and demo show no drop scenario: everything shown is live chain data or a real transaction.
 
 ## Mezo integration and what's new
 
@@ -138,7 +138,7 @@ The demo shows one real payment travelling from Base to a real Mezo loan, with e
 2. 0:20 Mint a Ballast Account and open a loan.
 3. 0:40 A payment arrives, splits, repays; the simulator shows the loan moving back.
 4. 1:10 The same from Base Sepolia.
-5. 1:30 Open and close the hedge, then a labelled SIMULATED BTC drop.
+5. 1:30 Open and close the hedge, with the real transactions.
 6. 1:50 The router integration and roadmap.
 
 **Limits stated openly**
@@ -181,10 +181,9 @@ Every row marked **Live** has confirmed testnet transactions (status 1). Address
 | No signature per payment; keeper triggers the policy and cannot redirect funds | **Live** | 50 MUSD sent straight to the account, [policy applied by a non-owner wallet](https://explorer.test.mezo.org/tx/0x8e804aaeb85cb98bbaef90e90994e020d5d66e794f2de6a82d89dd8c72d7c484): 37.5 / 2.5 / 10, ratio 141.27% → 141.92% |
 | Repayments stop at Mezo's minimum debt; the excess goes to the owner | **Live** | [300 MUSD at 60% repay: 168.80 repaid (all the room left), 131.20 to the owner; principal now exactly 2,000 MUSD; ratio 140.97% → 152.86%](https://explorer.test.mezo.org/tx/0xb52b86935a203d3fe55ed858d69bbefedb655703b43a1539e2108789dac098a0) |
 | Existing loans use Mezo's signed one-off repayment | **Live** | [50 MUSD → 40 to borrower, 10 repaid](https://explorer.test.mezo.org/tx/0x359ee97e8a6964e5354f55576bb667595de5e9f41f453b894d24df94b0462494) |
-| Redemption-line simulator (all six metrics, plus BTC −10/−20/−30%) | **Live** | Radar page; numbers equal Mezo's own reads; [quote → repay → position moved](https://explorer.test.mezo.org/tx/0xea07e53b0a2664cffc796b8e1063c0174979068ef0f200ccd5d810c3bd798c75) (v1 account) |
+| Redemption-line simulator (all six metrics, read live from Mezo) | **Live** | Radar page; numbers equal Mezo's own reads; [quote → repay → position moved](https://explorer.test.mezo.org/tx/0xea07e53b0a2664cffc796b8e1063c0174979068ef0f200ccd5d810c3bd798c75) (v1 account) |
 | Shareable pay link for each account | **Live** | `/pay/a/<accountId>` in the app |
 | Hedge: MUSD collateral on Morpho Blue, borrow BTC, sell on Mezo Pools, close, proceeds to the account | **Live** | [open](https://explorer.test.mezo.org/tx/0x806d0be570381b8d17030c7d1a577ae1200415b9c0b40de5c403e959b6b3720e), [close](https://explorer.test.mezo.org/tx/0xcf2c939a407618ed7d12f69f80f6e09d273951cf5ed34482654dae975c42c2f9), [to account](https://explorer.test.mezo.org/tx/0xdacf1c2a355e978821c9b418f21be314c3e203cb576f3f1b3ce5780c88c6cfa7) |
-| SIMULATED BTC drop, clearly labelled | **Live** | Hedge page, "SIMULATED — not a real price move" |
 | Pay from Base Sepolia to a Mezo loan | **MUSD over NTT: deployed, live run pending. USDC route: live** | See differences below |
 
 Rows above that link v2 transactions (14 Nov) describe behaviour that is unchanged in v3; the v3 re-runs are in [TEST_EVIDENCE.md](TEST_EVIDENCE.md).

@@ -158,3 +158,8 @@ Tests: `MEZO_TESTNET_RPC_URL=… BASE_SEPOLIA_RPC_URL=… forge test` → **53 p
 | **Account** closes it: `account.closeHedge` | [0xd6a52ed4…ed54](https://explorer.test.mezo.org/tx/0xd6a52ed49876862609d15578cf56b51b5372a38a2f45065aa8337675363ded54) (block 16791907) | `HedgeClosed`: 80.0000 MUSD came back for 80.7782 put in (collateral + top-up), 0.0000 repaid to the loan, 80.0000 back to the reserve. The hedge cost 0.7782 MUSD in fees (BTC did not fall) |
 
 Not re-run on v3: the Base USDC invoice route (the v3 receiver is deployed; a run needs a 20–30 minute guardian wait) and the Radar quote → repay → reorder proof (Radar is read-only and unchanged; it reads the v3 account live). MUSD over NTT from Base: still waiting on the guardian (see above).
+
+
+## 2026-11-15 — no simulations in the app (owner request)
+- Removed the Hedge page's "What a BTC drop would do" card, Radar's "If BTC falls" projection and Radar's "What if I repay" estimate, plus the `simulate` parameter of `/api/radar`. Every number in the app is now a live chain read or comes from a real transaction. (Earlier entries in this file that mention those cards are history.)
+- `pnpm typecheck` clean, `pnpm build` OK. Browser: `/`, `/demo`, `/app/hedge` render with no console errors; `/` and `/demo` have no horizontal scroll at 375 px.
