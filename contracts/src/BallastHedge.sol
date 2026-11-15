@@ -53,8 +53,9 @@ contract BallastHedge is ReentrancyGuard {
     error ZeroAmount();
     error NotEnoughBtcToRepay(uint256 have, uint256 owed);
 
+    /// @dev The Ballast account itself (v3: it opens and closes the hedge from its reserve) or the NFT holder.
     modifier onlyController() {
-        if (msg.sender != nft.ownerOf(tokenId)) revert NotController();
+        if (msg.sender != ballastFactory.accountOf(tokenId) && msg.sender != nft.ownerOf(tokenId)) revert NotController();
         _;
     }
 

@@ -247,4 +247,108 @@ contract BallastHedgeForkTest is Test {
         (uint256 coll,,) = hedge.positionInfo();
         assertLt(coll, 400e18, "collateral seized");
     }
+
+    // ---------------- v3: the ACCOUNT opens and closes the hedge from its hedge reserve ----------------
+
+    function _fundReserve(uint256 amt) internal {
+        // income with a 100% reserve policy: paid through the real router path would need an invoice; the keeper
+        // path is equivalent for accounting (MUSD arrives, anyone applies the owner's policy).
+        vm.startPrank(merchant);
+        account.setPolicy(0, 10_000, false, address(0), 0);
+        IERC20(MUSD).transfer(address(account), amt);
+        vm.stopPrank();
+        account.processIncome(address(0), address(0));
+        assertEq(account.hedgeReserve(), amt);
+    }
+
+    function test_fork_accountOpensAndClosesHedgeFromReserve() public onlyFork {
+        _fundReserve(1100e18);
+        vm.prank(lender);
+        vm.expectRevert(BallastAccount.NotController.selector);
+        account.setHedgeModule(address(hedge));
+        vm.startPrank(merchant);
+        vm.expectRevert(BallastAccount.NoHedgeModule.selector);
+        account.openHedge(1000e18, 0.004e18, 0);
+        vm.expectRevert(BallastAccount.BadHedgeModule.selector);
+        account.setHedgeModule(MUSD);
+        account.setHedgeModule(address(hedge));
+        vm.expectRevert(abi.encodeWithSelector(BallastAccount.InsufficientReserve.selector, 2000e18, 1100e18));
+        account.openHedge(2000e18, 0.004e18, 0);
+        account.openHedge(1000e18, 0.004e18, 0);
+        vm.stopPrank();
+
+        (uint256 coll, uint256 shares,) = hedge.positionInfo();
+        assertEq(coll, 1000e18, "account's reserve MUSD is the Morpho collateral");
+        assertGt(shares, 0);
+        assertEq(account.hedgeReserve(), 100e18);
+        assertEq(account.hedgePosted(), 1000e18);
+        assertEq(account.pendingIncome(), 0, "accounting stays consistent while the hedge is open");
+        uint256 proceeds = IERC20(MUSD).balanceOf(address(hedge));
+
+        vm.warp(block.timestamp + 7 days);
+        _mockOracle();
+        uint256 owner0 = account.ownerMUSD();
+        uint256 debt0 = ITroveManagerLite(TM).getTroveDebt(address(account));
+        vm.prank(lender);
+        vm.expectRevert(BallastAccount.NotController.selector);
+        account.closeHedge(proceeds + 5e18, 0, 5e18, address(0), address(0));
+        vm.prank(merchant);
+        account.closeHedge(proceeds + 5e18, 0, 5e18, address(0), address(0)); // lost fees + interest: 5 MUSD top-up from the reserve
+
+        (coll, shares,) = hedge.positionInfo();
+        assertEq(shares, 0);
+        assertEq(coll, 0);
+        assertEq(IERC20(MUSD).balanceOf(address(hedge)), 0, "module emptied back into the account");
+        assertEq(account.hedgePosted(), 0);
+        assertEq(account.hedgeReserve(), 1095e18, "collateral back in the reserve, minus the 5 MUSD the hedge cost");
+        assertEq(account.ownerMUSD(), owner0, "owner funds untouched");
+        assertEq(account.pendingIncome(), 0);
+        assertGe(ITroveManagerLite(TM).getTroveDebt(address(account)), debt0, "no profit, so nothing was repaid");
+        assertGt(IERC20(BTC).balanceOf(address(account)), 0, "leftover BTC swept to the account");
+    }
+
+    function test_fork_hedgeProfitAfterBtcDrop_repaysTheLoan() public onlyFork {
+        _fundReserve(1000e18);
+        vm.startPrank(merchant);
+        account.setHedgeModule(address(hedge));
+        account.openHedge(1000e18, 0.004e18, 0);
+        vm.stopPrank();
+        uint256 proceeds = IERC20(MUSD).balanceOf(address(hedge));
+
+        // SIMULATED price drop in the fork only: a whale dumps BTC into the real pool's reserves (not possible to cause on testnet)
+        address whale = makeAddr("whale");
+        (, uint256 r1,) = IPoolReserves(POOL).getReserves();
+        ForkBTC(BTC).mint(whale, r1 / 4);
+        vm.startPrank(whale);
+        IERC20(BTC).approve(POOLS_ROUTER, r1 / 4);
+        IPoolsRouterLite.Route[] memory route = new IPoolsRouterLite.Route[](1);
+        route[0] = IPoolsRouterLite.Route({from: BTC, to: MUSD, stable: false, factory: POOL_FACTORY});
+        IPoolsRouterLite(POOLS_ROUTER).swapExactTokensForTokens(r1 / 4, 0, route, whale, block.timestamp);
+        vm.stopPrank();
+
+        uint256 debt0 = ITroveManagerLite(TM).getTroveDebt(address(account));
+        // buy back with only part of the proceeds: BTC is cheaper now
+        vm.prank(merchant);
+        account.closeHedge(proceeds * 80 / 100, 0, 0, address(0), address(0));
+
+        uint256 debt1 = ITroveManagerLite(TM).getTroveDebt(address(account));
+        uint256 repaid = debt0 - debt1;
+        assertGt(repaid, 10e18, "hedge profit went toward the loan");
+        assertEq(account.hedgeReserve(), 1000e18, "the original collateral is back in the reserve");
+        assertEq(account.hedgePosted(), 0);
+        assertEq(account.pendingIncome(), 0);
+    }
+}
+
+interface IPoolsRouterLite {
+    struct Route {
+        address from;
+        address to;
+        bool stable;
+        address factory;
+    }
+
+    function swapExactTokensForTokens(uint256 amountIn, uint256 amountOutMin, Route[] calldata routes, address to, uint256 deadline)
+        external
+        returns (uint256[] memory);
 }

@@ -393,6 +393,86 @@ ntt-deliver-mezo) # ntt-deliver-mezo <sequence>: keeper (payer, not the owner) d
   log "  account MUSD after=$(cast call "$MUSD" "balanceOf(address)(uint256)" "$A" --rpc-url "$R") pendingIncome=$(cast call "$A" "pendingIncome()(uint256)" --rpc-url "$R")"
   "$0" keeper 0
   ;;
+v3-archive) # one-time: move the v2 deployment keys to ballastV2 so v3 can be deployed (Morpho, oracle, pool, adapter, gateway are kept)
+  python -c "
+import json
+f='config/deployments.mezo-testnet.json'; c=json.load(open(f))
+assert 'ballastV2' not in c, 'already archived'
+keys=['BallastRouter','BallastAccountNFT','BallastFactory','BallastAccount','tokenId','createAccountTx','BallastHedgeFactory','BallastHedge','BallastBridgeReceiver','deployTx']
+c['ballastV2']={'_note':'v2 deployment (2026-11-14), replaced by v3 on 2026-11-15; loan closed and funds returned to the deployer'}
+for k in keys:
+    if k in c['ballast']: c['ballastV2'][k]=c['ballast'].pop(k)
+json.dump(c,open(f,'w'),indent=2)
+print('archived', list(c['ballastV2'].keys()))"
+  ;;
+v2-close) # one-time migration: close the v2 demo trove and return BTC + MUSD to the deployer
+  V2A=$(j "d['ballastV2']['BallastAccount']")
+  DEBT=$(cast call "$TM" "getTroveDebt(address)(uint256)" "$V2A" --rpc-url "$R" | cut -d' ' -f1)
+  OWN=$(cast call "$V2A" "ownerMUSD()(uint256)" --rpc-url "$R" | cut -d' ' -f1)
+  NEED=$(python -c "print(max(0, $DEBT-200*10**18+2*10**18-$OWN))")
+  log "V2-CLOSE account=$V2A debt=$DEBT ownerMUSD=$OWN depositFromDeployer=$NEED"
+  if [ "$NEED" != "0" ]; then
+    send DEPLOYER_PRIVATE_KEY "$MUSD" "approve(address,uint256)" "$V2A" "$NEED"
+    send DEPLOYER_PRIVATE_KEY "$V2A" "depositMUSD(uint256)" "$NEED"
+  fi
+  send DEPLOYER_PRIVATE_KEY "$V2A" "closeTrove()" --gas-limit 1500000
+  log "  v2 troveStatus=$(cast call "$TM" "getTroveStatus(address)(uint8)" "$V2A" --rpc-url "$R") accountBTC=$(cast balance "$V2A" --rpc-url "$R")"
+  send DEPLOYER_PRIVATE_KEY "$V2A" "withdrawBTC(address,uint256)" "$DEPLOYER_ADDRESS" "$(cast balance "$V2A" --rpc-url "$R")"
+  RES=$(cast call "$V2A" "hedgeReserve()(uint256)" --rpc-url "$R" | cut -d' ' -f1)
+  [ "$RES" = "0" ] || send DEPLOYER_PRIVATE_KEY "$V2A" "withdrawReserve(address,uint256)" "$DEPLOYER_ADDRESS" "$RES"
+  OWN=$(cast call "$V2A" "ownerMUSD()(uint256)" --rpc-url "$R" | cut -d' ' -f1)
+  [ "$OWN" = "0" ] || send DEPLOYER_PRIVATE_KEY "$V2A" "withdrawMUSD(address,uint256)" "$DEPLOYER_ADDRESS" "$OWN"
+  log "  deployer BTC=$(cast balance "$DEPLOYER_ADDRESS" --ether --rpc-url "$R") MUSD=$(cast call "$MUSD" "balanceOf(address)(uint256)" "$DEPLOYER_ADDRESS" --rpc-url "$R")"
+  ;;
+acct-hedge-attach) # v3: create the account's hedge module and attach it to the account
+  HF=$(ballast BallastHedgeFactory); T=$(ballast tokenId); A=$(ballast BallastAccount)
+  send DEPLOYER_PRIVATE_KEY "$HF" "create(uint256)" "$T"
+  H=$(cast to-check-sum-address "$(cast call "$HF" "hedgeOf(uint256)(address)" "$T" --rpc-url "$R")")
+  cfgset BallastHedge "$H"
+  send DEPLOYER_PRIVATE_KEY "$A" "setHedgeModule(address)" "$H"
+  log "  hedge module $H attached: account.hedgeModule=$(cast call "$A" "hedgeModule()(address)" --rpc-url "$R")"
+  ;;
+acct-hedge-open) # acct-hedge-open <collateralMUSD> <borrowBTC>: the ACCOUNT opens the short from its hedge reserve
+  C=$(cast to-wei "$1"); B=$(cast to-wei "$2"); A=$(ballast BallastAccount); BTC=$(ballast MorphoBTC)
+  Q=$(quote "$B" "$BTC" "$MUSD" false); MIN=$(python -c "print($Q*99//100)")
+  log "ACCT-HEDGE-OPEN collateral=$C borrowBTC=$B quoteMUSD=$Q minOut=$MIN reserve=$(cast call "$A" "hedgeReserve()(uint256)" --rpc-url "$R") posted=$(cast call "$A" "hedgePosted()(uint256)" --rpc-url "$R")"
+  "$0" hedge-state
+  send DEPLOYER_PRIVATE_KEY "$A" "openHedge(uint256,uint256,uint256)" "$C" "$B" "$MIN" --gas-limit 2500000
+  cp evidence/last-receipt.json evidence/last-hedge-open-receipt.json
+  log "  reserve=$(cast call "$A" "hedgeReserve()(uint256)" --rpc-url "$R") posted=$(cast call "$A" "hedgePosted()(uint256)" --rpc-url "$R") pendingIncome=$(cast call "$A" "pendingIncome()(uint256)" --rpc-url "$R")"
+  "$0" hedge-state
+  ;;
+acct-hedge-close) # the ACCOUNT buys back, repays Morpho, and takes everything back (top-up from the reserve if the hedge lost money)
+  A=$(ballast BallastAccount); H=$(ballast BallastHedge); BTC=$(ballast MorphoBTC); MO=$(ballast Morpho)
+  send DEPLOYER_PRIVATE_KEY "$MO" "accrueInterest((address,address,address,address,uint256))" "$(mp_tuple)"
+  OWED=$(cast call "$H" "positionInfo()(uint256,uint256,uint256)" --rpc-url "$R" | sed -n 3p | cut -d' ' -f1)
+  HELD=$(cast call "$MUSD" "balanceOf(address)(uint256)" "$H" --rpc-url "$R" | cut -d' ' -f1)
+  NEED=$(quote "$(python -c "print($OWED*102//100)")" "$BTC" "$MUSD" false)
+  TOP=$(python -c "print(max(0,$NEED-$HELD))"); IN=$(python -c "print($HELD+$TOP)")
+  log "ACCT-HEDGE-CLOSE owedBTC=$OWED heldMUSD=$HELD spendMUSD=$IN topUpFromReserve=$TOP minBtcOut=$OWED reserve=$(cast call "$A" "hedgeReserve()(uint256)" --rpc-url "$R") posted=$(cast call "$A" "hedgePosted()(uint256)" --rpc-url "$R") accountBTC=$(cast balance "$A" --rpc-url "$R")"
+  send DEPLOYER_PRIVATE_KEY "$A" "closeHedge(uint256,uint256,uint256,address,address)" "$IN" "$OWED" "$TOP" 0x0000000000000000000000000000000000000000 0x0000000000000000000000000000000000000000 --gas-limit 3000000
+  cp evidence/last-receipt.json evidence/last-hedge-close-receipt.json
+  log "  reserve=$(cast call "$A" "hedgeReserve()(uint256)" --rpc-url "$R") posted=$(cast call "$A" "hedgePosted()(uint256)" --rpc-url "$R") pendingIncome=$(cast call "$A" "pendingIncome()(uint256)" --rpc-url "$R") moduleMUSD=$(cast call "$MUSD" "balanceOf(address)(uint256)" "$H" --rpc-url "$R") accountBTC=$(cast balance "$A" --rpc-url "$R")"
+  "$0" hedge-state
+  ;;
+nft-escrow-sale) # v3: list the account NFT (OPEN loan) in an escrow CONTRACT, sell it to the payer wallet, then return it
+  N=$(ballast BallastAccountNFT); T=$(ballast tokenId); A=$(ballast BallastAccount)
+  if [ -z "$(ballast DemoEscrow)" ]; then
+    forge build >/dev/null
+    create DemoEscrow out/BallastUnit.t.sol/EscrowStandIn.json
+    cfgset DemoEscrow "$CREATED"
+  fi
+  E=$(ballast DemoEscrow)
+  log "NFT-ESCROW-SALE escrow=$E owner=$(cast call "$N" "ownerOf(uint256)(address)" "$T" --rpc-url "$R") troveStatus=$(cast call "$TM" "getTroveStatus(address)(uint8)" "$A" --rpc-url "$R") debt=$(cast call "$TM" "getTroveDebt(address)(uint256)" "$A" --rpc-url "$R")"
+  log "  plain transferFrom to the contract (simulated): $(cast call "$N" "transferFrom(address,address,uint256)" "$DEPLOYER_ADDRESS" "$E" "$T" --from "$DEPLOYER_ADDRESS" --rpc-url "$R" 2>&1 | tail -1 | cut -c1-140)"
+  send DEPLOYER_PRIVATE_KEY "$N" "safeTransferFrom(address,address,uint256)" "$DEPLOYER_ADDRESS" "$E" "$T"
+  log "  listed: owner=$(cast call "$N" "ownerOf(uint256)(address)" "$T" --rpc-url "$R") account.controller=$(cast call "$A" "controller()(address)" --rpc-url "$R")"
+  send PAYER_PRIVATE_KEY "$E" "release(address,address,uint256)" "$N" "$PAYER_ADDRESS" "$T"
+  log "  sold: owner=$(cast call "$N" "ownerOf(uint256)(address)" "$T" --rpc-url "$R") account.controller=$(cast call "$A" "controller()(address)" --rpc-url "$R") troveStatus=$(cast call "$TM" "getTroveStatus(address)(uint8)" "$A" --rpc-url "$R")"
+  log "  old holder simulated withdrawMUSD: $(cast call "$A" "withdrawMUSD(address,uint256)" "$DEPLOYER_ADDRESS" 1 --from "$DEPLOYER_ADDRESS" --rpc-url "$R" 2>&1 | tail -1 | cut -c1-120)"
+  send PAYER_PRIVATE_KEY "$N" "transferFrom(address,address,uint256)" "$PAYER_ADDRESS" "$DEPLOYER_ADDRESS" "$T"
+  log "  returned: owner=$(cast call "$N" "ownerOf(uint256)(address)" "$T" --rpc-url "$R") controller=$(cast call "$A" "controller()(address)" --rpc-url "$R")"
+  ;;
 v1-close) # one-time migration: close the v1 demo trove, return BTC + MUSD to the deployer, archive v1 addresses
   V1A=$(j "d['ballastV1']['BallastAccount']")
   DEBT=$(cast call "$TM" "getTroveDebt(address)(uint256)" "$V1A" --rpc-url "$R" | cut -d' ' -f1)

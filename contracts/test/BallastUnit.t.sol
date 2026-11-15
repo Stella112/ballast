@@ -2,6 +2,8 @@
 pragma solidity 0.8.24;
 
 import {Test} from "forge-std/Test.sol";
+import {IERC721Errors} from "@openzeppelin/contracts/interfaces/draft-IERC6093.sol";
+import {IERC721Receiver} from "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {BallastFactory} from "../src/BallastFactory.sol";
 import {BallastAccountNFT} from "../src/BallastAccountNFT.sol";
@@ -55,6 +57,17 @@ contract StandInBO {
         tm.set(msg.sender, 1, d - amt);
     }
     function closeTrove() external { tm.set(msg.sender, 2, 0); }
+}
+
+/// @dev Minimal marketplace escrow: holds the NFT (implements IERC721Receiver) and releases it to a buyer.
+contract EscrowStandIn is IERC721Receiver {
+    function onERC721Received(address, address, uint256, bytes calldata) external pure returns (bytes4) {
+        return IERC721Receiver.onERC721Received.selector;
+    }
+
+    function release(address nft, address buyer, uint256 tokenId) external {
+        BallastAccountNFT(nft).transferFrom(address(this), buyer, tokenId);
+    }
 }
 
 contract BallastUnitTest is Test {
@@ -409,8 +422,12 @@ contract BallastUnitTest is Test {
         account.setPolicy(2000, 0, false, oldPayout, 0);
 
         vm.prank(merchant);
-        vm.expectRevert(abi.encodeWithSelector(BallastAccountNFT.RecipientMustBeEOA.selector, address(router)));
+        vm.expectRevert(abi.encodeWithSelector(BallastAccountNFT.UseSafeTransferForContracts.selector, address(router)));
         nft.transferFrom(merchant, address(router), tokenId);
+        // safeTransferFrom to a contract that cannot receive NFTs is rejected too
+        vm.prank(merchant);
+        vm.expectRevert(abi.encodeWithSelector(IERC721Errors.ERC721InvalidReceiver.selector, address(router)));
+        nft.safeTransferFrom(merchant, address(router), tokenId);
 
         // invoice signed by the old holder becomes invalid after transfer
         (BallastRouter.Invoice memory inv, bytes memory sig) = _inv("old", 1e18, block.timestamp + 10);
@@ -449,5 +466,28 @@ contract BallastUnitTest is Test {
         vm.prank(merchant);
         account.withdrawBTC(merchant, 0.5 ether);
         assertEq(merchant.balance, 0.5 ether);
+    }
+
+    function test_nft_soldWholeThroughEscrowContract_withOpenLoan() public {
+        _open();
+        EscrowStandIn escrow = new EscrowStandIn();
+        address buyer = makeAddr("buyer");
+        uint256 debt = tm.getTroveDebt(address(account));
+
+        vm.prank(merchant);
+        nft.safeTransferFrom(merchant, address(escrow), tokenId); // listed: escrow holds the account
+        assertEq(account.controller(), address(escrow));
+        vm.prank(merchant);
+        vm.expectRevert(BallastAccount.NotController.selector);
+        account.withdrawMUSD(merchant, 1);
+
+        escrow.release(address(nft), buyer, tokenId); // sold: buyer takes the whole account, loan included
+        assertEq(account.controller(), buyer);
+        assertTrue(account.hasActiveTrove());
+        assertEq(tm.getTroveDebt(address(account)), debt, "the loan moved with the account");
+        uint256 free = account.freeMUSD();
+        vm.prank(buyer);
+        account.withdrawMUSD(buyer, free);
+        assertEq(musd.balanceOf(buyer), free);
     }
 }

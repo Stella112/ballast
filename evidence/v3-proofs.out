@@ -1,0 +1,863 @@
+=== pay 100 v3-demo
+[2026-11-15T07:28:12Z] PAY accountId=1 amount=100000000000000000000 reference=v3-demo quoteSplit(owner,reserve,repay)=75000000000000000000 [7.5e19] 5000000000000000000 [5e18] 20000000000000000000 [2e19] 
+[2026-11-15T07:28:13Z] STATE @block 16791760 account=0xe43257DB9B711c29A8e44c5C4F58950752FAf463
+[2026-11-15T07:28:16Z]   troveStatus=1
+[2026-11-15T07:28:18Z]   troveDebt=2302100071491632018199 [2.302e21]
+[2026-11-15T07:28:20Z]   trovePrincipal=2302100000000000000000 [2.302e21]
+[2026-11-15T07:28:22Z]   troveColl=48000000000000000 [4.8e16]
+[2026-11-15T07:28:25Z]   NICR=2085052777898440 [2.085e15]
+[2026-11-15T07:28:30Z]   price=64309112320000000000000 ICR=1340878891229042929 [1.34e18]
+[2026-11-15T07:28:37Z]   inSortedTroves=true prev=0xB00D87a621703502719CC89Befe113c30eEA3190 next=0x60cCfE4A7732de303c0eA6189D77D874904C43d5
+[2026-11-15T07:28:49Z]   account MUSD=2100000000000000000000 [2.1e21] hedgeReserve=0 ownerMUSD=2100000000000000000000 [2.1e21] pendingIncome=0 maxRepayable=302100071491632018199 [3.021e20]
+[2026-11-15T07:28:51Z]   controller=0x4ff0D7c712B109dE476f21Ed443Ef0928d52a5fA
+[2026-11-15T07:28:56Z]   payer MUSD=1337549243265722100681 [1.337e21] merchant MUSD=506713767791806933440 [5.067e20]
+[2026-11-15T07:28:59Z] SUBMITTED approve(address,uint256) hash=0xd579b79678adceb204a216ebbc0500bebfae0d015e0ab1f2d5ddc171286119f8
+[2026-11-15T07:29:04Z] TX approve(address,uint256) status=1 block=16791773 hash=0xd579b79678adceb204a216ebbc0500bebfae0d015e0ab1f2d5ddc171286119f8 https://explorer.test.mezo.org/tx/0xd579b79678adceb204a216ebbc0500bebfae0d015e0ab1f2d5ddc171286119f8
+[2026-11-15T07:29:07Z] SUBMITTED pay(uint256,uint256,bytes32) hash=0xbec250c4a877f3b637b8935e1713115d8d5989626614c9e97f3cdf12938bbd5e
+[2026-11-15T07:29:12Z] TX pay(uint256,uint256,bytes32) status=1 block=16791774 hash=0xbec250c4a877f3b637b8935e1713115d8d5989626614c9e97f3cdf12938bbd5e https://explorer.test.mezo.org/tx/0xbec250c4a877f3b637b8935e1713115d8d5989626614c9e97f3cdf12938bbd5e
+[2026-11-15T07:29:14Z] STATE @block 16791774 account=0xe43257DB9B711c29A8e44c5C4F58950752FAf463
+[2026-11-15T07:29:16Z]   troveStatus=1
+[2026-11-15T07:29:19Z]   troveDebt=2282100114532512518953 [2.282e21]
+[2026-11-15T07:29:21Z]   trovePrincipal=2282100114532512518953 [2.282e21]
+[2026-11-15T07:29:24Z]   troveColl=48000000000000000 [4.8e16]
+[2026-11-15T07:29:26Z]   NICR=2103325778493849 [2.103e15]
+[2026-11-15T07:29:31Z]   price=64339233860000000000000 ICR=1353263691462823415 [1.353e18]
+[2026-11-15T07:29:37Z]   inSortedTroves=true prev=0x9A660C5E90574B6bE73386d692503DAf12E8Fb9e next=0xbB46E135cB9aaaE594014dC3417FD5a3e8955433
+[2026-11-15T07:29:49Z]   account MUSD=2105000000000000000000 [2.105e21] hedgeReserve=5000000000000000000 [5e18] ownerMUSD=2100000000000000000000 [2.1e21] pendingIncome=0 maxRepayable=282100114532512518953 [2.821e20]
+[2026-11-15T07:29:51Z]   controller=0x4ff0D7c712B109dE476f21Ed443Ef0928d52a5fA
+[2026-11-15T07:29:56Z]   payer MUSD=1237549243265722100681 [1.237e21] merchant MUSD=581713767791806933440 [5.817e20]
+=== keeper 50
+[2026-11-15T07:30:09Z] SUBMITTED transfer(address,uint256) hash=0x8307402fbd7f0fd77d7f150bb5ac9e764f7140ae73d74423530e38f1a3436510
+[2026-11-15T07:30:15Z] TX transfer(address,uint256) status=1 block=16791789 hash=0x8307402fbd7f0fd77d7f150bb5ac9e764f7140ae73d74423530e38f1a3436510 https://explorer.test.mezo.org/tx/0x8307402fbd7f0fd77d7f150bb5ac9e764f7140ae73d74423530e38f1a3436510
+[2026-11-15T07:30:20Z] KEEPER pendingIncome=50000000000000000000 [5e19] ownerMUSD=2100000000000000000000 [2.1e21]
+[2026-11-15T07:30:21Z] STATE @block 16791791 account=0xe43257DB9B711c29A8e44c5C4F58950752FAf463
+[2026-11-15T07:30:24Z]   troveStatus=1
+[2026-11-15T07:30:26Z]   troveDebt=2282100167323830375276 [2.282e21]
+[2026-11-15T07:30:28Z]   trovePrincipal=2282100114532512518953 [2.282e21]
+[2026-11-15T07:30:30Z]   troveColl=48000000000000000 [4.8e16]
+[2026-11-15T07:30:32Z]   NICR=2103325778493849 [2.103e15]
+[2026-11-15T07:30:37Z]   price=64313913640000000000000 ICR=1352731093455962479 [1.352e18]
+[2026-11-15T07:30:44Z]   inSortedTroves=true prev=0x9A660C5E90574B6bE73386d692503DAf12E8Fb9e next=0xbB46E135cB9aaaE594014dC3417FD5a3e8955433
+[2026-11-15T07:30:56Z]   account MUSD=2155000000000000000000 [2.155e21] hedgeReserve=5000000000000000000 [5e18] ownerMUSD=2100000000000000000000 [2.1e21] pendingIncome=50000000000000000000 [5e19] maxRepayable=282100167323830375276 [2.821e20]
+[2026-11-15T07:30:58Z]   controller=0x4ff0D7c712B109dE476f21Ed443Ef0928d52a5fA
+[2026-11-15T07:31:02Z]   payer MUSD=1187549243265722100681 [1.187e21] merchant MUSD=581713767791806933440 [5.817e20]
+[2026-11-15T07:31:26Z] SUBMITTED processIncome(address,address) hash=0x93bbadeb9ad67c95f32ca5507ee6b7d9b28cec00d4c327dd857868aaf4b1a9cd
+[2026-11-15T07:31:31Z] TX processIncome(address,address) status=1 block=16791808 hash=0x93bbadeb9ad67c95f32ca5507ee6b7d9b28cec00d4c327dd857868aaf4b1a9cd https://explorer.test.mezo.org/tx/0x93bbadeb9ad67c95f32ca5507ee6b7d9b28cec00d4c327dd857868aaf4b1a9cd
+[2026-11-15T07:31:35Z]   pendingIncome=0 ownerMUSD=2100000000000000000000 [2.1e21]
+[2026-11-15T07:31:36Z] STATE @block 16791808 account=0xe43257DB9B711c29A8e44c5C4F58950752FAf463
+[2026-11-15T07:31:39Z]   troveStatus=1
+[2026-11-15T07:31:41Z]   troveDebt=2272100217222473280567 [2.272e21]
+[2026-11-15T07:31:44Z]   trovePrincipal=2272100217222473280567 [2.272e21]
+[2026-11-15T07:31:46Z]   troveColl=48000000000000000 [4.8e16]
+[2026-11-15T07:31:49Z]   NICR=2112582870956174 [2.112e15]
+[2026-11-15T07:31:54Z]   price=64307461570000000000000 ICR=1358548417874544517 [1.358e18]
+[2026-11-15T07:32:02Z]   inSortedTroves=true prev=0x9A660C5E90574B6bE73386d692503DAf12E8Fb9e next=0xbB46E135cB9aaaE594014dC3417FD5a3e8955433
+[2026-11-15T07:32:14Z]   account MUSD=2107500000000000000000 [2.107e21] hedgeReserve=7500000000000000000 [7.5e18] ownerMUSD=2100000000000000000000 [2.1e21] pendingIncome=0 maxRepayable=272100217222473280567 [2.721e20]
+[2026-11-15T07:32:17Z]   controller=0x4ff0D7c712B109dE476f21Ed443Ef0928d52a5fA
+[2026-11-15T07:32:22Z]   payer MUSD=1187549243265722100681 [1.187e21] merchant MUSD=619213767791806933440 [6.192e20]
+=== nft-escrow-sale
+warning[missing-zero-check]: address parameter is used in a state write or value transfer without a zero-address check
+   ╭▸ contracts/src/BallastFactory.sol:35:9
+   │
+35 │         address borrowerOperations_,
+   │         ━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   │
+   ╰ help: https://getfoundry.sh/forge/linting/missing-zero-check
+
+warning[missing-zero-check]: address parameter is used in a state write or value transfer without a zero-address check
+   ╭▸ contracts/src/BallastAccountNFT.sol:33:17
+   │
+33 │     constructor(address factory_) ERC721("Ballast Account", "BALLAST") {
+   │                 ━━━━━━━━━━━━━━━━
+   │
+   ╰ help: https://getfoundry.sh/forge/linting/missing-zero-check
+
+warning[non-reentrant-not-first]: `nonReentrant` is not the first modifier
+    ╭▸ contracts/src/BallastAccount.sol:245:9
+    │
+245 │         nonReentrant
+    │         ━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/non-reentrant-not-first
+
+warning[missing-zero-check]: address parameter is used in a state write or value transfer without a zero-address check
+   ╭▸ contracts/src/BallastFactory.sol:37:9
+   │
+37 │         address musd_,
+   │         ━━━━━━━━━━━━━
+   │
+   ╰ help: https://getfoundry.sh/forge/linting/missing-zero-check
+
+warning[missing-zero-check]: address parameter is used in a state write or value transfer without a zero-address check
+   ╭▸ contracts/src/BallastFactory.sol:36:9
+   │
+36 │         address troveManager_,
+   │         ━━━━━━━━━━━━━━━━━━━━━
+   │
+   ╰ help: https://getfoundry.sh/forge/linting/missing-zero-check
+
+warning[missing-zero-check]: address parameter is used in a state write or value transfer without a zero-address check
+   ╭▸ contracts/src/BallastFactory.sol:38:9
+   │
+38 │         address priceFeed_
+   │         ━━━━━━━━━━━━━━━━━━
+   │
+   ╰ help: https://getfoundry.sh/forge/linting/missing-zero-check
+
+warning[reentrancy-no-eth]: external call can be reentered before `_status` is updated
+   ╭▸ contracts/src/BallastBridgeReceiver.sol:98:28
+   │
+98 │         bytes memory raw = tokenBridge.completeTransferWithPayload(encodedVm);
+   │                            ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   │
+   ╰ help: https://getfoundry.sh/forge/linting/reentrancy-no-eth
+
+warning[missing-zero-check]: address parameter is used in a state write or value transfer without a zero-address check
+   ╭▸ contracts/src/BallastRouter.sol:91:17
+   │
+91 │     constructor(address factory_, address musd_) EIP712("BallastRouter", "1") {
+   │                 ━━━━━━━━━━━━━━━━
+   │
+   ╰ help: https://getfoundry.sh/forge/linting/missing-zero-check
+
+warning[missing-zero-check]: address parameter is used in a state write or value transfer without a zero-address check
+   ╭▸ contracts/src/BallastFactory.sol:34:9
+   │
+34 │         address router_,
+   │         ━━━━━━━━━━━━━━━
+   │
+   ╰ help: https://getfoundry.sh/forge/linting/missing-zero-check
+
+warning[reentrancy-events]: event emitted after an external call; reentrancy can reorder or fabricate logs that off-chain consumers rely on
+    ╭▸ contracts/src/BallastAccount.sol:251:9
+    │
+251 │         emit TroveOpened(msg.value, debtAmount, troveManager.getTroveDebt(address(this)));
+    │         ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/reentrancy-events
+
+warning[reentrancy-events]: event emitted after an external call; reentrancy can reorder or fabricate logs that off-chain consumers rely on
+   ╭▸ contracts/src/BallastFactory.sol:64:9
+   │
+64 │         emit AccountCreated(tokenId, account, msg.sender);
+   │         ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   │
+   ╰ help: https://getfoundry.sh/forge/linting/reentrancy-events
+
+warning[unsafe-oz-erc721-mint]: `ERC721._mint` does not check that the recipient can receive the token; use `_safeMint`
+   ╭▸ contracts/src/BallastAccountNFT.sol:39:9
+   │
+39 │         _mint(to, tokenId);
+   │         ━━━━━━━━━━━━━━━━━━
+   │
+   ╰ help: https://getfoundry.sh/forge/linting/unsafe-oz-erc721-mint
+
+warning[reentrancy-no-eth]: external call can be reentered before `_status` is updated
+    ╭▸ contracts/src/BallastRouter.sol:166:40
+    │
+166 │         (uint256 icr0, uint256 icr1) = acct.applyPayment(ref, amount, toOwner, toReserve, repaid, upperHint, lowerHint);
+    │                                        ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/reentrancy-no-eth
+
+warning[reentrancy-no-eth]: external call can be reentered before `_status` is updated
+    ╭▸ contracts/src/BallastBridgeReceiver.sol:121:13
+    │
+121 │         try poolsRouter.swapExactTokensForTokens(received, p.minMusdOut, route, address(this), block.timestamp) returns (
+    │             ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/reentrancy-no-eth
+
+warning[reentrancy-no-eth]: external call can be reentered before `_status` is updated
+    ╭▸ contracts/src/BallastBridgeReceiver.sol:139:13
+    │
+139 │         try ballastRouter.payInvoice(p.invoice, p.invoiceSig, upperHint, lowerHint) {
+    │             ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/reentrancy-no-eth
+
+warning[reentrancy-eth]: uncapped ETH transfer can be reentered before `_status` is updated
+   ╭▸ contracts/src/BallastBaseGateway.sol:70:26
+   │
+70 │             (bool ok,) = msg.sender.call{value: address(this).balance}("");
+   │                          ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   │
+   ╰ help: https://getfoundry.sh/forge/linting/reentrancy-eth
+
+warning[missing-zero-check]: address parameter is used in a state write or value transfer without a zero-address check
+   ╭▸ contracts/src/BallastHedge.sol:68:9
+   │
+68 │         address poolFactory_
+   │         ━━━━━━━━━━━━━━━━━━━━
+   │
+   ╰ help: https://getfoundry.sh/forge/linting/missing-zero-check
+
+warning[non-reentrant-not-first]: `nonReentrant` is not the first modifier
+    ╭▸ contracts/src/BallastAccount.sol:254:98
+    │
+254 │     function addCollateral(address upperHint, address lowerHint) external payable onlyController nonReentrant {
+    │                                                                                                  ━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/non-reentrant-not-first
+
+warning[unused-return]: return value of an external call is not used
+   ╭▸ contracts/src/BallastHedge.sol:98:37
+   │
+98 │         (, uint128 bs, uint128 c) = morpho.position(marketId, address(this));
+   │                                     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   │
+   ╰ help: https://getfoundry.sh/forge/linting/unused-return
+
+warning[reentrancy-events]: event emitted after an external call; reentrancy can reorder or fabricate logs that off-chain consumers rely on
+   ╭▸ contracts/src/BallastBaseGateway.sol:73:9
+   │
+73 │         emit BasePayment(account, paymentReference, msg.sender, amount, sequence);
+   │         ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   │
+   ╰ help: https://getfoundry.sh/forge/linting/reentrancy-events
+
+warning[unused-return]: return value of an external call is not used
+   ╭▸ contracts/src/BallastHedge.sol:99:43
+   │
+99 │         (,, uint128 tba, uint128 tbs,,) = morpho.market(marketId);
+   │                                           ━━━━━━━━━━━━━━━━━━━━━━━
+   │
+   ╰ help: https://getfoundry.sh/forge/linting/unused-return
+
+warning[uninitialized-local]: local variable is read before being initialized
+    ╭▸ contracts/src/BallastBridgeReceiver.sol:131:13
+    │
+131 │         if (musdOut < p.invoice.amount) {
+    │             ━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/uninitialized-local
+
+warning[block-timestamp]: usage of `block.timestamp` in a comparison may be manipulated by validators
+    ╭▸ contracts/src/BallastRouter.sol:134:13
+    │
+134 │         if (block.timestamp > inv.expiry) revert Expired(inv.expiry);
+    │             ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/block-timestamp
+
+warning[reentrancy-events]: event emitted after an external call; reentrancy can reorder or fabricate logs that off-chain consumers rely on
+    ╭▸ contracts/src/BallastBridgeReceiver.sol:153:9
+    │
+153 │         emit BridgedPaymentRefunded(vaaHash, token, amount, to, reason);
+    │         ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/reentrancy-events
+
+warning[reentrancy-events]: event emitted after an external call; reentrancy can reorder or fabricate logs that off-chain consumers rely on
+    ╭▸ contracts/src/BallastRouter.sol:167:9
+    │
+167 │         emit Payment(accountId, ref, msg.sender, amount, toOwner, toReserve, repaid, icr0, icr1);
+    │         ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/reentrancy-events
+
+warning[reentrancy-events]: event emitted after an external call; reentrancy can reorder or fabricate logs that off-chain consumers rely on
+    ╭▸ contracts/src/BallastAccount.sol:257:9
+    │
+257 │         emit CollateralAdded(msg.value);
+    │         ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/reentrancy-events
+
+warning[reentrancy-events]: event emitted after an external call; reentrancy can reorder or fabricate logs that off-chain consumers rely on
+    ╭▸ contracts/src/BallastRouter.sol:149:9
+    │
+149 │ ┏         emit InvoicePaid(
+150 │ ┃             inv.tokenId, inv.invoiceId, msg.sender, account, acct.payoutAddress(), inv.amount, toOwner, toReserve, repaid
+151 │ ┃         );
+    │ ┗━━━━━━━━━━┛
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/reentrancy-events
+
+warning[reentrancy-events]: event emitted after an external call; reentrancy can reorder or fabricate logs that off-chain consumers rely on
+    ╭▸ contracts/src/BallastBridgeReceiver.sol:142:13
+    │
+142 │ ┏             emit BridgedInvoicePaid(
+143 │ ┃                 vaaHash, p.invoice.tokenId, p.invoice.invoiceId, t.fromAddress, received, musdOut, change, p.refundTo
+144 │ ┃             );
+    │ ┗━━━━━━━━━━━━━━┛
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/reentrancy-events
+
+warning[reentrancy-no-eth]: external call can be reentered before `_status` is updated
+    ╭▸ contracts/src/BallastHedge.sol:116:9
+    │
+116 │         morpho.supplyCollateral(mp, collateral, address(this), "");
+    │         ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/reentrancy-no-eth
+
+warning[reentrancy-no-eth]: external call can be reentered before `_status` is updated
+    ╭▸ contracts/src/BallastHedge.sol:117:9
+    │
+117 │         morpho.borrow(mp, borrowBtc, 0, address(this), address(this));
+    │         ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/reentrancy-no-eth
+
+warning[reentrancy-no-eth]: external call can be reentered before `_status` is updated
+    ╭▸ contracts/src/BallastHedge.sol:172:36
+    │
+172 │         uint256[] memory amounts = poolsRouter.swapExactTokensForTokens(amountIn, minOut, route, address(this), block.timestamp);
+    │                                    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/reentrancy-no-eth
+
+warning[non-reentrant-not-first]: `nonReentrant` is not the first modifier
+    ╭▸ contracts/src/BallastHedge.sol:108:102
+    │
+108 │     function open(uint256 collateral, uint256 borrowBtc, uint256 minMusdOut) external onlyController nonReentrant {
+    │                                                                                                      ━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/non-reentrant-not-first
+
+warning[reentrancy-events]: event emitted after an external call; reentrancy can reorder or fabricate logs that off-chain consumers rely on
+    ╭▸ contracts/src/BallastHedge.sol:120:9
+    │
+120 │         emit HedgeOpened(collateral, borrowBtc, out);
+    │         ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/reentrancy-events
+
+warning[unused-return]: return value of an external call is not used
+    ╭▸ contracts/src/BallastHedge.sol:117:9
+    │
+117 │         morpho.borrow(mp, borrowBtc, 0, address(this), address(this));
+    │         ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/unused-return
+
+warning[reentrancy-no-eth]: external call can be reentered before `_status` is updated
+    ╭▸ contracts/src/BallastAccount.sol:267:9
+    │
+267 │         borrowerOperations.withdrawColl(amount, upperHint, lowerHint);
+    │         ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/reentrancy-no-eth
+
+warning[non-reentrant-not-first]: `nonReentrant` is not the first modifier
+    ╭▸ contracts/src/BallastAccount.sol:264:9
+    │
+264 │         nonReentrant
+    │         ━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/non-reentrant-not-first
+
+warning[reentrancy-events]: event emitted after an external call; reentrancy can reorder or fabricate logs that off-chain consumers rely on
+    ╭▸ contracts/src/BallastAccount.sol:268:9
+    │
+268 │         emit CollateralWithdrawn(amount);
+    │         ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/reentrancy-events
+
+warning[reentrancy-no-eth]: external call can be reentered before `_status` is updated
+    ╭▸ contracts/src/BallastAccount.sol:275:9
+    │
+275 │         borrowerOperations.withdrawMUSD(amount, upperHint, lowerHint);
+    │         ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/reentrancy-no-eth
+
+warning[non-reentrant-not-first]: `nonReentrant` is not the first modifier
+    ╭▸ contracts/src/BallastAccount.sol:272:99
+    │
+272 │     function borrow(uint256 amount, address upperHint, address lowerHint) external onlyController nonReentrant {
+    │                                                                                                   ━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/non-reentrant-not-first
+
+warning[reentrancy-events]: event emitted after an external call; reentrancy can reorder or fabricate logs that off-chain consumers rely on
+    ╭▸ contracts/src/BallastAccount.sol:277:9
+    │
+277 │         emit Borrowed(amount);
+    │         ━━━━━━━━━━━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/reentrancy-events
+
+warning[reentrancy-no-eth]: external call can be reentered before `_status` is updated
+    ╭▸ contracts/src/BallastHedge.sol:128:9
+    │
+128 │         morpho.accrueInterest(mp);
+    │         ━━━━━━━━━━━━━━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/reentrancy-no-eth
+
+warning[reentrancy-no-eth]: external call can be reentered before `_status` is updated
+    ╭▸ contracts/src/BallastHedge.sol:138:29
+    │
+138 │         (uint256 repaid,) = morpho.repay(mp, 0, bs, address(this), "");
+    │                             ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/reentrancy-no-eth
+
+warning[reentrancy-no-eth]: external call can be reentered before `_status` is updated
+    ╭▸ contracts/src/BallastHedge.sol:140:9
+    │
+140 │         morpho.withdrawCollateral(mp, collateral, address(this), address(this));
+    │         ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/reentrancy-no-eth
+
+warning[non-reentrant-not-first]: `nonReentrant` is not the first modifier
+    ╭▸ contracts/src/BallastHedge.sol:126:94
+    │
+126 │     function close(uint256 musdIn, uint256 minBtcOut, uint256 topUp) external onlyController nonReentrant {
+    │                                                                                              ━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/non-reentrant-not-first
+
+warning[reentrancy-events]: event emitted after an external call; reentrancy can reorder or fabricate logs that off-chain consumers rely on
+    ╭▸ contracts/src/BallastHedge.sol:141:9
+    │
+141 │         emit HedgeClosed(musdIn, repaid, collateral, btc.balanceOf(address(this)));
+    │         ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/reentrancy-events
+
+warning[unused-return]: return value of an external call is not used
+    ╭▸ contracts/src/BallastHedge.sol:138:29
+    │
+138 │         (uint256 repaid,) = morpho.repay(mp, 0, bs, address(this), "");
+    │                             ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/unused-return
+
+warning[reentrancy-no-eth]: external call can be reentered before `_status` is updated
+    ╭▸ contracts/src/BallastHedge.sol:155:13
+    │
+155 │             IBallastAccountDeposit(acct).depositMUSD(m);
+    │             ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/reentrancy-no-eth
+
+warning[non-reentrant-not-first]: `nonReentrant` is not the first modifier
+    ╭▸ contracts/src/BallastHedge.sol:146:54
+    │
+146 │     function sendToAccount() external onlyController nonReentrant {
+    │                                                      ━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/non-reentrant-not-first
+
+warning[reentrancy-events]: event emitted after an external call; reentrancy can reorder or fabricate logs that off-chain consumers rely on
+    ╭▸ contracts/src/BallastHedge.sol:158:9
+    │
+158 │         emit SentToAccount(acct, m, b);
+    │         ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/reentrancy-events
+
+warning[non-reentrant-not-first]: `nonReentrant` is not the first modifier
+    ╭▸ contracts/src/BallastHedge.sol:163:90
+    │
+163 │     function withdraw(address token, address to, uint256 amount) external onlyController nonReentrant {
+    │                                                                                          ━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/non-reentrant-not-first
+
+warning[non-reentrant-not-first]: `nonReentrant` is not the first modifier
+    ╭▸ contracts/src/BallastAccount.sol:281:98
+    │
+281 │     function repay(uint256 amount, address upperHint, address lowerHint) external onlyController nonReentrant {
+    │                                                                                                  ━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/non-reentrant-not-first
+
+warning[reentrancy-events]: event emitted after an external call; reentrancy can reorder or fabricate logs that off-chain consumers rely on
+    ╭▸ contracts/src/BallastAccount.sol:288:9
+    │
+288 │         emit PaymentApplied(msg.sender, bytes32(0), amount, 0, 0, amount, icr0, currentICR());
+    │         ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/reentrancy-events
+
+warning[reentrancy-no-eth]: external call can be reentered before `_status` is updated
+    ╭▸ contracts/src/BallastAccount.sol:304:9
+    │
+304 │         borrowerOperations.closeTrove();
+    │         ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/reentrancy-no-eth
+
+warning[non-reentrant-not-first]: `nonReentrant` is not the first modifier
+    ╭▸ contracts/src/BallastAccount.sol:301:51
+    │
+301 │     function closeTrove() external onlyController nonReentrant {
+    │                                                   ━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/non-reentrant-not-first
+
+warning[reentrancy-no-eth]: external call can be reentered before `_status` is updated
+    ╭▸ contracts/src/BallastRepaymentAdapter.sol:191:9
+    │
+191 │         signatures.repayMUSDWithSignature(amount, sig.upperHint, sig.lowerHint, borrower, sig.signature, sig.deadline);
+    │         ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/reentrancy-no-eth
+
+warning[reentrancy-events]: event emitted after an external call; reentrancy can reorder or fabricate logs that off-chain consumers rely on
+    ╭▸ contracts/src/BallastAccount.sol:308:9
+    │
+308 │         emit TroveClosed();
+    │         ━━━━━━━━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/reentrancy-events
+
+warning[reentrancy-events]: event emitted after an external call; reentrancy can reorder or fabricate logs that off-chain consumers rely on
+    ╭▸ contracts/src/BallastRepaymentAdapter.sol:138:9
+    │
+138 │         emit SignedRepayment(borrower, msg.sender, amount, debtBefore, debtAfter);
+    │         ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/reentrancy-events
+
+warning[reentrancy-no-eth]: external call can be reentered before `_status` is updated
+    ╭▸ contracts/src/BallastAccount.sol:313:9
+    │
+313 │         borrowerOperations.claimCollateral();
+    │         ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/reentrancy-no-eth
+
+warning[non-reentrant-not-first]: `nonReentrant` is not the first modifier
+    ╭▸ contracts/src/BallastAccount.sol:312:56
+    │
+312 │     function claimCollateral() external onlyController nonReentrant {
+    │                                                        ━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/non-reentrant-not-first
+
+warning[block-timestamp]: usage of `block.timestamp` in a comparison may be manipulated by validators
+    ╭▸ contracts/src/BallastRepaymentAdapter.sol:151:13
+    │
+151 │         if (block.timestamp > inv.expiry) revert InvoiceExpired();
+    │             ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/block-timestamp
+
+warning[missing-zero-check]: address parameter is used in a state write or value transfer without a zero-address check
+    ╭▸ contracts/src/BallastHedge.sol:193:89
+    │
+193 │     constructor(address ballastFactory_, address morpho_, MorphoMarketParams memory mp, address poolsRouter_, address poolFactory_) {
+    │                                                                                         ━━━━━━━━━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/missing-zero-check
+
+warning[reentrancy-events]: event emitted after an external call; reentrancy can reorder or fabricate logs that off-chain consumers rely on
+    ╭▸ contracts/src/BallastRepaymentAdapter.sol:170:9
+    │
+170 │ ┏         emit DirectInvoicePaid(
+171 │ ┃             inv.merchant, inv.invoiceId, msg.sender, inv.amount, inv.repayAmount, toMerchant, debtBefore, debtAfter
+172 │ ┃         );
+    │ ┗━━━━━━━━━━┛
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/reentrancy-events
+
+warning[missing-zero-check]: address parameter is used in a state write or value transfer without a zero-address check
+    ╭▸ contracts/src/BallastHedge.sol:193:111
+    │
+193 │     constructor(address ballastFactory_, address morpho_, MorphoMarketParams memory mp, address poolsRouter_, address poolFactory_) {
+    │                                                                                                               ━━━━━━━━━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/missing-zero-check
+
+warning[missing-zero-check]: address parameter is used in a state write or value transfer without a zero-address check
+    ╭▸ contracts/src/BallastHedge.sol:193:17
+    │
+193 │     constructor(address ballastFactory_, address morpho_, MorphoMarketParams memory mp, address poolsRouter_, address poolFactory_) {
+    │                 ━━━━━━━━━━━━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/missing-zero-check
+
+warning[missing-zero-check]: address parameter is used in a state write or value transfer without a zero-address check
+    ╭▸ contracts/src/BallastHedge.sol:193:42
+    │
+193 │     constructor(address ballastFactory_, address morpho_, MorphoMarketParams memory mp, address poolsRouter_, address poolFactory_) {
+    │                                          ━━━━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/missing-zero-check
+
+warning[reentrancy-events]: event emitted after an external call; reentrancy can reorder or fabricate logs that off-chain consumers rely on
+    ╭▸ contracts/src/BallastHedge.sol:211:9
+    │
+211 │         emit HedgeCreated(tokenId, hedge, msg.sender);
+    │         ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/reentrancy-events
+
+warning[non-reentrant-not-first]: `nonReentrant` is not the first modifier
+    ╭▸ contracts/src/BallastAccount.sol:337:79
+    │
+337 │     function withdrawMUSD(address to, uint256 amount) external onlyController nonReentrant {
+    │                                                                               ━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/non-reentrant-not-first
+
+warning[non-reentrant-not-first]: `nonReentrant` is not the first modifier
+    ╭▸ contracts/src/BallastAccount.sol:345:82
+    │
+345 │     function withdrawReserve(address to, uint256 amount) external onlyController nonReentrant {
+    │                                                                                  ━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/non-reentrant-not-first
+
+warning[arbitrary-send-eth]: ETH is sent to a user-controlled destination; restrict the destination or the caller
+    ╭▸ contracts/src/BallastAccount.sol:356:22
+    │
+356 │         (bool ok,) = to.call{value: amount}("");
+    │                      ━━━━━━━━━━━━━━━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/arbitrary-send-eth
+
+warning[reentrancy-eth]: uncapped ETH transfer can be reentered before `_status` is updated
+    ╭▸ contracts/src/BallastAccount.sol:356:22
+    │
+356 │         (bool ok,) = to.call{value: amount}("");
+    │                      ━━━━━━━━━━━━━━━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/reentrancy-eth
+
+warning[non-reentrant-not-first]: `nonReentrant` is not the first modifier
+    ╭▸ contracts/src/BallastAccount.sol:354:78
+    │
+354 │     function withdrawBTC(address to, uint256 amount) external onlyController nonReentrant {
+    │                                                                              ━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/non-reentrant-not-first
+
+warning[reentrancy-events]: event emitted after an external call; reentrancy can reorder or fabricate logs that off-chain consumers rely on
+    ╭▸ contracts/src/BallastAccount.sol:358:9
+    │
+358 │         emit BTCWithdrawn(to, amount);
+    │         ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/reentrancy-events
+
+warning[non-reentrant-not-first]: `nonReentrant` is not the first modifier
+    ╭▸ contracts/src/BallastAccount.sol:362:93
+    │
+362 │     function rescueToken(address token, address to, uint256 amount) external onlyController nonReentrant {
+    │                                                                                             ━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/non-reentrant-not-first
+
+warning[missing-zero-check]: address parameter is used in a state write or value transfer without a zero-address check
+    ╭▸ contracts/src/BallastAccount.sol:374:29
+    │
+374 │     function setHedgeModule(address module) external onlyController {
+    │                             ━━━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/missing-zero-check
+
+warning[reentrancy-no-eth]: external call can be reentered before `_status` is updated
+    ╭▸ contracts/src/BallastAccount.sol:395:9
+    │
+395 │         IBallastHedgeModule(m).open(collateral, borrowBtc, minMusdOut);
+    │         ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/reentrancy-no-eth
+
+warning[non-reentrant-not-first]: `nonReentrant` is not the first modifier
+    ╭▸ contracts/src/BallastAccount.sol:388:107
+    │
+388 │     function openHedge(uint256 collateral, uint256 borrowBtc, uint256 minMusdOut) external onlyController nonReentrant {
+    │                                                                                                           ━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/non-reentrant-not-first
+
+warning[reentrancy-events]: event emitted after an external call; reentrancy can reorder or fabricate logs that off-chain consumers rely on
+    ╭▸ contracts/src/BallastAccount.sol:396:9
+    │
+396 │         emit HedgeOpened(collateral, borrowBtc);
+    │         ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/reentrancy-events
+
+warning[reentrancy-no-eth]: external call can be reentered before `hedgePosted` is updated
+    ╭▸ contracts/src/BallastAccount.sol:418:9
+    │
+418 │         IBallastHedgeModule(m).close(musdIn, minBtcOut, topUp);
+    │         ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/reentrancy-no-eth
+
+warning[reentrancy-no-eth]: external call can be reentered before `hedgePosted` is updated
+    ╭▸ contracts/src/BallastAccount.sol:422:23
+    │
+422 │         if (held > 0) IBallastHedgeModule(m).withdraw(address(musd), address(this), held);
+    │                       ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/reentrancy-no-eth
+
+warning[reentrancy-no-eth]: external call can be reentered before `hedgePosted` is updated
+    ╭▸ contracts/src/BallastAccount.sol:425:26
+    │
+425 │         if (btcLeft > 0) IBallastHedgeModule(m).withdraw(btc, address(this), btcLeft);
+    │                          ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/reentrancy-no-eth
+
+warning[reentrancy-no-eth]: external call can be reentered before `hedgeReserve` is updated
+    ╭▸ contracts/src/BallastAccount.sol:491:9
+    │
+491 │         borrowerOperations.repayMUSD(amount, upperHint, lowerHint);
+    │         ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/reentrancy-no-eth
+
+warning[uninitialized-local]: local variable is read before being initialized
+    ╭▸ contracts/src/BallastAccount.sol:437:31
+    │
+437 │         hedgeReserve += got - repaid;
+    │                               ━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/uninitialized-local
+
+warning[non-reentrant-not-first]: `nonReentrant` is not the first modifier
+    ╭▸ contracts/src/BallastAccount.sol:405:9
+    │
+405 │         nonReentrant
+    │         ━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/non-reentrant-not-first
+
+warning[reentrancy-events]: event emitted after an external call; reentrancy can reorder or fabricate logs that off-chain consumers rely on
+    ╭▸ contracts/src/BallastAccount.sol:494:9
+    │
+494 │         emit Repaid(msg.sender, ref, amount, debtBefore, debtAfter);
+    │         ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/reentrancy-events
+
+warning[reentrancy-events]: event emitted after an external call; reentrancy can reorder or fabricate logs that off-chain consumers rely on
+    ╭▸ contracts/src/BallastAccount.sol:439:9
+    │
+439 │         emit HedgeClosed(got, posted, repaid, got - repaid);
+    │         ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/reentrancy-events
+
+warning[unsafe-typecast]: typecast can truncate values
+    ╭▸ contracts/src/BallastAccount.sol:435:66
+    │
+435 │             if (repaid > 0) _repay(repaid, upperHint, lowerHint, bytes32("hedge"));
+    │                                                                  ━━━━━━━━━━━━━━━━
+    │
+    ├ note: consider disabling this lint if you're certain the cast is safe
+    │       
+    │       // casting to 'bytes32' is safe because [explain why]
+    │       // forge-lint: disable-next-line(unsafe-typecast)
+    │       
+    │       
+    ╰ help: https://getfoundry.sh/forge/linting/unsafe-typecast
+
+warning[non-reentrant-not-first]: `nonReentrant` is not the first modifier
+    ╭▸ contracts/src/BallastAccount.sol:451:9
+    │
+451 │         nonReentrant
+    │         ━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/non-reentrant-not-first
+
+warning[reentrancy-events]: event emitted after an external call; reentrancy can reorder or fabricate logs that off-chain consumers rely on
+    ╭▸ contracts/src/BallastAccount.sol:455:9
+    │
+455 │         emit PaymentApplied(msg.sender, ref, amount, toOwner, toReserve, repayAmount, icrBefore, icrAfter);
+    │         ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/reentrancy-events
+
+warning[reentrancy-events]: event emitted after an external call; reentrancy can reorder or fabricate logs that off-chain consumers rely on
+    ╭▸ contracts/src/BallastAccount.sol:470:9
+    │
+470 │         emit PaymentApplied(msg.sender, bytes32(0), income, toOwner, toReserve, repaid, icr0, icr1);
+    │         ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/reentrancy-events
+
+warning[environment-read-across-mutation]: `block.timestamp` may be reused across `vm.warp`
+    ╭▸ contracts/test/BallastAdapterFork.t.sol:109:98
+    │
+109 │             merchant: borrower, invoiceId: id, amount: amount, repayAmount: repayAmount, expiry: block.timestamp + 1 days
+    │                                                                                                  ━━━━━━━━━━━━━━━
+    ‡
+239 │         vm.warp(inv.expiry + 1);
+    │         ─────────────────────── `vm.warp` changes this environment here
+    │
+    ├ help: capture it with `vm.getBlockTimestamp()` instead
+    ╰ help: https://getfoundry.sh/forge/linting/environment-read-across-mutation
+
+warning[environment-read-across-mutation]: `block.timestamp` may be reused across `vm.warp`
+    ╭▸ contracts/test/BallastHedgeFork.t.sol:153:17
+    │
+153 │         vm.warp(block.timestamp + 7 days); // interest accrues in BTC
+    │         ────────━━━━━━━━━━━━━━━────────── `vm.warp` changes this environment here
+    │
+    ├ help: capture it with `vm.getBlockTimestamp()` instead
+    ╰ help: https://getfoundry.sh/forge/linting/environment-read-across-mutation
+
+warning[environment-read-across-mutation]: `block.timestamp` may be reused across `vm.warp`
+    ╭▸ contracts/test/BallastHedgeFork.t.sol:288:17
+    │
+288 │         vm.warp(block.timestamp + 7 days);
+    │         ────────━━━━━━━━━━━━━━━────────── `vm.warp` changes this environment here
+    │
+    ├ help: capture it with `vm.getBlockTimestamp()` instead
+    ╰ help: https://getfoundry.sh/forge/linting/environment-read-across-mutation
+
+warning[environment-read-across-mutation]: `block.timestamp` may be reused across `vm.warp`
+    ╭▸ contracts/test/BallastUnit.t.sol:184:82
+    │
+184 │         (BallastRouter.Invoice memory inv, bytes memory sig) = _inv("a", 100e18, block.timestamp + 10);
+    │                                                                                  ━━━━━━━━━━━━━━━
+    ‡
+192 │         vm.warp(block.timestamp + 11);
+    │         ───────────────────────────── `vm.warp` changes this environment here
+    │
+    ├ help: capture it with `vm.getBlockTimestamp()` instead
+    ╰ help: https://getfoundry.sh/forge/linting/environment-read-across-mutation
+
+warning[environment-read-across-mutation]: `block.timestamp` may be reused across `vm.warp`
+    ╭▸ contracts/test/BallastUnit.t.sol:191:40
+    │
+191 │         (inv, sig) = _inv("b", 100e18, block.timestamp + 10);
+    │                                        ━━━━━━━━━━━━━━━
+192 │         vm.warp(block.timestamp + 11);
+    │         ───────────────────────────── `vm.warp` changes this environment here
+    │
+    ├ help: capture it with `vm.getBlockTimestamp()` instead
+    ╰ help: https://getfoundry.sh/forge/linting/environment-read-across-mutation
+
+warning[environment-read-across-mutation]: `block.timestamp` may be reused across `vm.warp`
+    ╭▸ contracts/test/BallastUnit.t.sol:192:17
+    │
+192 │         vm.warp(block.timestamp + 11);
+    │         ────────━━━━━━━━━━━━━━━────── `vm.warp` changes this environment here
+    │
+    ├ help: capture it with `vm.getBlockTimestamp()` instead
+    ╰ help: https://getfoundry.sh/forge/linting/environment-read-across-mutation
+
+[2026-11-15T07:32:36Z] SUBMITTED create DemoEscrow hash=0x253c325316020ca594f636dd9ca4355b7cffd4adcd7460481e538d6f18150c4b
+[2026-11-15T07:32:40Z] TX create DemoEscrow status=1 block=16791824 hash=0x253c325316020ca594f636dd9ca4355b7cffd4adcd7460481e538d6f18150c4b address=0xe482ddf523a805338408dd48fa785aa9603337e0 https://explorer.test.mezo.org/address/0xe482ddf523a805338408dd48fa785aa9603337e0
+[2026-11-15T07:32:49Z] NFT-ESCROW-SALE escrow=0xE482DdF523A805338408dd48Fa785AA9603337E0 owner=0x4ff0D7c712B109dE476f21Ed443Ef0928d52a5fA troveStatus=1 debt=2272100272662465307087 [2.272e21]
+[2026-11-15T07:32:51Z]   plain transferFrom to the contract (simulated): - server returned an error response: error code 3: execution reverted, data: "0x18ac76fe000000000000000000000000e482ddf523a805338408dd48fa78
+[2026-11-15T07:32:55Z] SUBMITTED safeTransferFrom(address,address,uint256) hash=0x2d8e01521db67bb4542be4383d3f1a053f219c17a890c19f99995ccd630f857a
+[2026-11-15T07:32:58Z] TX safeTransferFrom(address,address,uint256) status=1 block=16791829 hash=0x2d8e01521db67bb4542be4383d3f1a053f219c17a890c19f99995ccd630f857a https://explorer.test.mezo.org/tx/0x2d8e01521db67bb4542be4383d3f1a053f219c17a890c19f99995ccd630f857a
+[2026-11-15T07:33:03Z]   listed: owner=0xE482DdF523A805338408dd48Fa785AA9603337E0 account.controller=0xE482DdF523A805338408dd48Fa785AA9603337E0
+[2026-11-15T07:33:07Z] SUBMITTED release(address,address,uint256) hash=0x43626e6369e6e8304ee33348492fe1b0c45f08333d404e8937a36bd5c208b8d9
+[2026-11-15T07:33:09Z] TX release(address,address,uint256) status=1 block=16791831 hash=0x43626e6369e6e8304ee33348492fe1b0c45f08333d404e8937a36bd5c208b8d9 https://explorer.test.mezo.org/tx/0x43626e6369e6e8304ee33348492fe1b0c45f08333d404e8937a36bd5c208b8d9
+[2026-11-15T07:33:17Z]   sold: owner=0xCBCd26d717CEe0305b92FDC1E50A398608A4d857 account.controller=0xCBCd26d717CEe0305b92FDC1E50A398608A4d857 troveStatus=1
+[2026-11-15T07:33:20Z]   old holder simulated withdrawMUSD: - server returned an error response: error code 3: execution reverted, data: "0x23019e67"
+[2026-11-15T07:33:23Z] SUBMITTED transferFrom(address,address,uint256) hash=0x42d4d58ccca7ea7a232a719588946ba0d4c0ab3943bdecd00d8dec4f8ba6222f
+[2026-11-15T07:33:28Z] TX transferFrom(address,address,uint256) status=1 block=16791836 hash=0x42d4d58ccca7ea7a232a719588946ba0d4c0ab3943bdecd00d8dec4f8ba6222f https://explorer.test.mezo.org/tx/0x42d4d58ccca7ea7a232a719588946ba0d4c0ab3943bdecd00d8dec4f8ba6222f
+[2026-11-15T07:33:33Z]   returned: owner=0x4ff0D7c712B109dE476f21Ed443Ef0928d52a5fA controller=0x4ff0D7c712B109dE476f21Ed443Ef0928d52a5fA
+=== set-policy 0 10000
+[2026-11-15T07:33:44Z] SUBMITTED setPolicy(uint16,uint16,bool,address,uint256) hash=0x065eb7757f4103b0edac46bd750dcf2660e52e3dcd6c094a113c12cdb12916d1
+[2026-11-15T07:33:50Z] TX setPolicy(uint16,uint16,bool,address,uint256) status=1 block=16791841 hash=0x065eb7757f4103b0edac46bd750dcf2660e52e3dcd6c094a113c12cdb12916d1 https://explorer.test.mezo.org/tx/0x065eb7757f4103b0edac46bd750dcf2660e52e3dcd6c094a113c12cdb12916d1
+[2026-11-15T07:33:52Z]   policy=(0, 10000 [1e4], false, 0x0000000000000000000000000000000000000000, 0)
+=== pay 85 hedge-reserve

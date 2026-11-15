@@ -16,6 +16,15 @@ import {IBorrowerOperations, ITroveManager, IPriceFeed} from "../interfaces/IMez
 ///         destinations or amounts; they come from account state. Nobody but the controller can move collateral
 ///         or the owner's MUSD.
 /// @dev UNAUDITED. Testnet demo only. See docs/SECURITY.md.
+/// @dev The account's hedge module (BallastHedge): a Morpho Blue short funded by this account.
+interface IBallastHedgeModule {
+    function tokenId() external view returns (uint256);
+    function btc() external view returns (address);
+    function open(uint256 collateral, uint256 borrowBtc, uint256 minMusdOut) external;
+    function close(uint256 musdIn, uint256 minBtcOut, uint256 topUp) external;
+    function withdraw(address token, address to, uint256 amount) external;
+}
+
 contract BallastAccount is ReentrancyGuard {
     using SafeERC20 for IERC20;
 
@@ -50,6 +59,11 @@ contract BallastAccount is ReentrancyGuard {
     ///         controller. Anything in the balance beyond `ownerMUSD + hedgeReserve` is income not yet processed.
     uint256 public ownerMUSD;
 
+    /// @notice This account's hedge module (0 = none). Chosen by the controller.
+    address public hedgeModule;
+    /// @notice MUSD this account has put into the open hedge (collateral + top-ups). 0 when no hedge is open.
+    uint256 public hedgePosted;
+
     // ---- events ----
     event PolicyUpdated(uint16 repayBps, uint16 reserveBps, bool paused, address payout, uint256 minCash);
     /// @notice One policy application. `source` = router or keeper; icr values are Mezo collateral ratios (1e18),
@@ -76,6 +90,9 @@ contract BallastAccount is ReentrancyGuard {
     event CollateralAdded(uint256 amount);
     event CollateralWithdrawn(uint256 amount);
     event TroveClosed();
+    event HedgeModuleSet(address indexed module);
+    event HedgeOpened(uint256 collateralFromReserve, uint256 btcBorrowed);
+    event HedgeClosed(uint256 musdReturned, uint256 musdPosted, uint256 profitRepaidToLoan, uint256 backToReserve);
 
     // ---- errors ----
     error NotController();
@@ -93,6 +110,9 @@ contract BallastAccount is ReentrancyGuard {
     error BTCTransferFailed();
     error ZeroAddress();
     error CannotRescueMUSD();
+    error NoHedgeModule();
+    error BadHedgeModule();
+    error HedgeOpen();
 
     constructor(
         address nft_,
@@ -343,6 +363,80 @@ contract BallastAccount is ReentrancyGuard {
         if (token == address(musd)) revert CannotRescueMUSD();
         if (to == address(0)) revert ZeroAddress();
         IERC20(token).safeTransfer(to, amount);
+    }
+
+    // ------------------------------------------------------------------
+    // Hedge: the account opens a small BTC short from its hedge reserve and closes it back into itself.
+    // RISK: a short loses money if BTC rises and can be liquidated. See BallastHedge.
+    // ------------------------------------------------------------------
+
+    /// @notice Attach this account's hedge module (created by BallastHedgeFactory for this tokenId).
+    function setHedgeModule(address module) external onlyController {
+        if (hedgePosted != 0) revert HedgeOpen();
+        if (module.code.length == 0) revert BadHedgeModule();
+        try IBallastHedgeModule(module).tokenId() returns (uint256 t) {
+            if (t != tokenId) revert BadHedgeModule();
+        } catch {
+            revert BadHedgeModule();
+        }
+        hedgeModule = module;
+        emit HedgeModuleSet(module);
+    }
+
+    /// @notice Open the hedge with `collateral` MUSD taken from the hedge reserve: post it on Morpho Blue, borrow
+    ///         `borrowBtc`, sell it for at least `minMusdOut` MUSD (held in the module to buy the BTC back).
+    function openHedge(uint256 collateral, uint256 borrowBtc, uint256 minMusdOut) external onlyController nonReentrant {
+        address m = hedgeModule;
+        if (m == address(0)) revert NoHedgeModule();
+        if (collateral > hedgeReserve) revert InsufficientReserve(collateral, hedgeReserve);
+        hedgeReserve -= collateral;
+        hedgePosted += collateral;
+        musd.forceApprove(m, collateral);
+        IBallastHedgeModule(m).open(collateral, borrowBtc, minMusdOut);
+        emit HedgeOpened(collateral, borrowBtc);
+    }
+
+    /// @notice Close the hedge and bring everything back into this account. `topUp` (needed when the hedge lost
+    ///         money) comes from the hedge reserve first, then the owner's MUSD. If more MUSD comes back than was
+    ///         put in, the difference repays the Mezo loan (up to Mezo's minimum debt); the rest returns to the reserve.
+    function closeHedge(uint256 musdIn, uint256 minBtcOut, uint256 topUp, address upperHint, address lowerHint)
+        external
+        onlyController
+        nonReentrant
+    {
+        address m = hedgeModule;
+        if (m == address(0)) revert NoHedgeModule();
+        if (topUp > 0) {
+            uint256 fromReserve = topUp <= hedgeReserve ? topUp : hedgeReserve;
+            uint256 fromOwner = topUp - fromReserve;
+            if (fromOwner > ownerMUSD) revert InsufficientFreeMUSD(fromOwner, ownerMUSD);
+            hedgeReserve -= fromReserve;
+            ownerMUSD -= fromOwner;
+            hedgePosted += topUp;
+            musd.forceApprove(m, topUp);
+        }
+        IBallastHedgeModule(m).close(musdIn, minBtcOut, topUp);
+
+        uint256 bal0 = musd.balanceOf(address(this));
+        uint256 held = musd.balanceOf(m);
+        if (held > 0) IBallastHedgeModule(m).withdraw(address(musd), address(this), held);
+        address btc = IBallastHedgeModule(m).btc();
+        uint256 btcLeft = IERC20(btc).balanceOf(m);
+        if (btcLeft > 0) IBallastHedgeModule(m).withdraw(btc, address(this), btcLeft);
+        uint256 got = musd.balanceOf(address(this)) - bal0;
+
+        uint256 posted = hedgePosted;
+        hedgePosted = 0;
+        uint256 repaid;
+        if (got > posted && hasActiveTrove()) {
+            repaid = got - posted;
+            uint256 cap = maxRepayable();
+            if (repaid > cap) repaid = cap;
+            if (repaid > 0) _repay(repaid, upperHint, lowerHint, bytes32("hedge"));
+        }
+        hedgeReserve += got - repaid;
+        if (musd.balanceOf(address(this)) < hedgeReserve + ownerMUSD) revert ReserveInvariantBroken();
+        emit HedgeClosed(got, posted, repaid, got - repaid);
     }
 
     // ------------------------------------------------------------------

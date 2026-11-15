@@ -5,7 +5,7 @@ import { parseUnits, zeroAddress, type Address } from "viem";
 import { AccountGate } from "@/components/account-gate";
 import { Addr, Badge, Card, Field, Notice, Stat, fmt, inputCls, pct } from "@/components/ui";
 import { TxButton, TxStatus, useTx } from "@/components/tx";
-import { BallastHedgeAbi, BallastHedgeFactoryAbi, MorphoAbi, MUSDAbi, PoolsRouterAbi, PriceFeedAbi } from "@/lib/abis";
+import { BallastAccountAbi, BallastHedgeAbi, BallastHedgeFactoryAbi, MorphoAbi, MUSDAbi, PoolsRouterAbi, PriceFeedAbi } from "@/lib/abis";
 import { cfg } from "@/lib/config";
 import type { AccountState } from "@/lib/useBallast";
 
@@ -115,25 +115,42 @@ function Market() {
 function HedgeInner({ s }: { s: AccountState }) {
   const { address } = useAccount();
   const isController = address?.toLowerCase() === s.controller.toLowerCase();
-  const h = useReadContract({ address: B.BallastHedgeFactory!, abi: BallastHedgeFactoryAbi, functionName: "hedgeOf", args: [s.tokenId], query: { refetchInterval: 20_000 } });
-  const hedge = h.data as Address | undefined;
-  const createTx = useTx();
+  const h = useReadContracts({
+    contracts: [
+      { address: B.BallastHedgeFactory!, abi: BallastHedgeFactoryAbi, functionName: "hedgeOf", args: [s.tokenId] },
+      { address: s.account, abi: BallastAccountAbi, functionName: "hedgeModule" },
+      { address: s.account, abi: BallastAccountAbi, functionName: "hedgePosted" },
+    ],
+    query: { refetchInterval: 20_000 },
+  });
+  const [created, attached, posted] = (h.data ?? []).map((r) => r.result) as [Address?, Address?, bigint?];
+  const createTx = useTx(), attachTx = useTx();
 
   if (h.isLoading) return <p className="text-sm text-muted">Loading…</p>;
-  if (!hedge || hedge === zeroAddress) {
+  if (!created || created === zeroAddress) {
     return (
-      <Card title="Hedge module">
-        <p className="mb-3 text-sm text-muted">Each Ballast account gets its own hedge contract, controlled by whoever holds the account NFT. Creating it costs only gas.</p>
+      <Card title="Set up the hedge (step 1 of 2)">
+        <p className="mb-3 text-sm text-muted">Your Ballast account opens the hedge through its own hedge module, which holds the Morpho position. Creating it costs only gas.</p>
         <TxButton label="Create hedge module" state={createTx.state} disabled={!isController}
           onClick={() => createTx.run(async () => ({ address: B.BallastHedgeFactory!, abi: BallastHedgeFactoryAbi, functionName: "create", args: [s.tokenId], account: address }), () => h.refetch())} />
         <div className="mt-3"><TxStatus state={createTx.state} /></div>
       </Card>
     );
   }
-  return <Position hedge={hedge} isController={isController} s={s} />;
+  if (!attached || attached.toLowerCase() !== created.toLowerCase()) {
+    return (
+      <Card title="Set up the hedge (step 2 of 2)">
+        <p className="mb-3 text-sm text-muted">Attach module <Addr a={created} /> to your account so the account can fund the hedge from its hedge reserve.</p>
+        <TxButton label="Attach to my account" state={attachTx.state} disabled={!isController}
+          onClick={() => attachTx.run(async () => ({ address: s.account, abi: BallastAccountAbi, functionName: "setHedgeModule", args: [created], account: address }), () => h.refetch())} />
+        <div className="mt-3"><TxStatus state={attachTx.state} /></div>
+      </Card>
+    );
+  }
+  return <Position hedge={created} posted={posted ?? 0n} isController={isController} s={s} onChange={() => h.refetch()} />;
 }
 
-function Position({ hedge, isController, s }: { hedge: Address; isController: boolean; s: AccountState }) {
+function Position({ hedge, posted, isController, s, onChange }: { hedge: Address; posted: bigint; isController: boolean; s: AccountState; onChange: () => void }) {
   const { address } = useAccount();
   const k = useMarket();
   const q = useReadContracts({
@@ -141,14 +158,15 @@ function Position({ hedge, isController, s }: { hedge: Address; isController: bo
       { address: hedge, abi: BallastHedgeAbi, functionName: "positionInfo" },
       { address: cfg.mezo.MUSD, abi: MUSDAbi, functionName: "balanceOf", args: [hedge] },
       { address: B.MorphoBTC!, abi: MUSDAbi, functionName: "balanceOf", args: [hedge] },
-      { address: cfg.mezo.MUSD, abi: MUSDAbi, functionName: "balanceOf", args: [address ?? zeroAddress] },
-      { address: cfg.mezo.MUSD, abi: MUSDAbi, functionName: "allowance", args: [address ?? zeroAddress, hedge] },
+      { address: s.account, abi: BallastAccountAbi, functionName: "hedgeReserve" },
+      { address: s.account, abi: BallastAccountAbi, functionName: "ownerMUSD" },
     ],
     query: { refetchInterval: 15_000 },
   });
-  const [info, heldMusd, heldBtc, myMusd, allowance] = (q.data ?? []).map((r) => r.result) as [(readonly bigint[] | undefined)?, bigint?, bigint?, bigint?, bigint?];
+  const [info, heldMusd, heldBtc, reserveNow, ownerNow] = (q.data ?? []).map((r) => r.result) as [(readonly bigint[] | undefined)?, bigint?, bigint?, bigint?, bigint?];
   const collateral = info?.[0] ?? 0n, shares = info?.[1] ?? 0n, owed = info?.[2] ?? 0n;
   const open = shares > 0n;
+  const reserve = reserveNow ?? s.hedgeReserve;
 
   // Cost to buy back what is owed (+2% buffer for fees and interest until the tx lands), quoted by the real pool.
   const need = useReadContract({
@@ -176,69 +194,59 @@ function Position({ hedge, isController, s }: { hedge: Address; isController: bo
   const ltvNow = k.oraclePrice && collateral > 0n ? (owed * k.oraclePrice) / collateral : undefined;
   const liqPriceNow = owed > 0n ? (LLTV * collateral) / owed : undefined;
   const topUp = needMusd !== undefined && heldMusd !== undefined && needMusd > heldMusd ? needMusd - heldMusd : 0n;
+  const canTopUp = topUp <= reserve + (ownerNow ?? 0n);
 
-  const approveTx = useTx(), openTx = useTx(), topTx = useTx(), closeTx = useTx(), sendTx = useTx();
-  const refresh = () => { q.refetch(); k.q.refetch(); need.refetch(); };
+  const openTx = useTx(), closeTx = useTx();
+  const refresh = () => { q.refetch(); k.q.refetch(); need.refetch(); onChange(); };
 
   return (
     <>
-      <Card title="Your hedge" right={open ? <Badge tone="warn">Short open</Badge> : <Badge tone="neutral">No position</Badge>}>
-        <p className="mb-3 text-xs text-muted">Module <Addr a={hedge} /> · controlled by the NFT holder <Addr a={s.controller} />{!isController && " (not your connected wallet)"}</p>
+      <Card title="Your account's hedge" right={open ? <Badge tone="warn">Short open</Badge> : <Badge tone="neutral">No position</Badge>}>
+        <p className="mb-3 text-xs text-muted">Opened and closed by your Ballast account <Addr a={s.account} /> (controlled by the NFT holder <Addr a={s.controller} />{!isController && ", not your connected wallet"}). Position held in its module <Addr a={hedge} />.</p>
         <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
-          <Stat label="MUSD collateral (Morpho)" value={fmt(collateral)} />
+          <Stat label="Hedge reserve (in account)" value={`${fmt(reserve)} MUSD`} sub="funds new hedges" />
+          <Stat label="MUSD collateral (Morpho)" value={fmt(collateral)} sub={`account put in ${fmt(posted)}`} />
           <Stat label="BTC owed" value={fmt(owed, 18, 8)} sub="incl. interest to last accrual" />
-          <Stat label="Held in module" value={`${fmt(heldMusd)} MUSD`} sub={`${fmt(heldBtc, 18, 8)} BTC`} />
           <Stat label="LTV / liquidation price" value={open ? pct(ltvNow) : "—"} sub={open ? `liquidatable if BTC ≥ ${fmt(liqPriceNow, 18, 0)}` : "86% max"} />
         </div>
         {open && markValue !== undefined && heldMusd !== undefined && (
           <p className="mt-3 text-sm num">
-            Estimated P/L if closed now: <strong className={heldMusd >= markValue ? "text-ok" : "text-bad"}>{heldMusd >= markValue ? "+" : "−"}{fmt(heldMusd >= markValue ? heldMusd - markValue : markValue - heldMusd)} MUSD</strong>
+            Sale proceeds held: {fmt(heldMusd)} MUSD. Estimated P/L if closed now: <strong className={heldMusd >= markValue ? "text-ok" : "text-bad"}>{heldMusd >= markValue ? "+" : "−"}{fmt(heldMusd >= markValue ? heldMusd - markValue : markValue - heldMusd)} MUSD</strong>
             <span className="text-xs text-muted"> (MUSD held − pool value of BTC owed; buy-back fees not included)</span>
           </p>
         )}
+        {!open && (heldBtc ?? 0n) > 0n && <p className="mt-3 text-xs text-muted">Module still holds {fmt(heldBtc, 18, 8)} BTC dust.</p>}
       </Card>
 
       {!open ? (
-        <Card title="Open a short">
+        <Card title="Open a short from the hedge reserve">
           <div className="grid gap-4 md:grid-cols-2">
-            <Field label="MUSD collateral (from your wallet)" hint={`Wallet: ${fmt(myMusd)} MUSD. Move MUSD from your account on the Account page.`}><input className={inputCls} inputMode="decimal" value={coll} onChange={(e) => setColl(e.target.value)} /></Field>
+            <Field label="MUSD collateral (from the account's hedge reserve)" hint={`Reserve: ${fmt(reserve)} MUSD. It fills from the hedge share of each payment.`}><input className={inputCls} inputMode="decimal" value={coll} onChange={(e) => setColl(e.target.value)} /></Field>
             <Field label="BTC to borrow and sell" hint={`Pool pays ≈ ${fmt(saleOut)} MUSD`}><input className={inputCls} inputMode="decimal" value={borrow} onChange={(e) => setBorrow(e.target.value)} /></Field>
           </div>
           <p className="mt-3 text-sm num">LTV at open {pct(ltvNew)} (max 86%) · liquidatable if BTC ≥ {fmt(liqPriceNew, 18, 0)} MUSD on Mezo&apos;s oracle.</p>
-          {ltvNew !== undefined && ltvNew > LLTV && <div className="mt-3"><Notice tone="bad">Above the market&apos;s 86% LLTV — Morpho will reject this borrow.</Notice></div>}
+          {ltvNew !== undefined && ltvNew > LLTV && <div className="mt-3"><Notice tone="bad">Above the market&apos;s 86% LLTV. Morpho will reject this borrow.</Notice></div>}
+          {c > reserve && <div className="mt-3"><Notice tone="warn">The hedge reserve holds {fmt(reserve)} MUSD, less than this collateral. Receive more payments with a hedge share, or lower the amount.</Notice></div>}
           <div className="mt-4 flex flex-wrap gap-2">
-            <TxButton variant="secondary" label={allowance !== undefined && allowance >= c ? "MUSD approved" : `1. Approve ${fmt(c)} MUSD`} state={approveTx.state} disabled={!isController || c === 0n || (allowance ?? 0n) >= c}
-              onClick={() => approveTx.run(async () => ({ address: cfg.mezo.MUSD, abi: MUSDAbi, functionName: "approve", args: [hedge, c], account: address }), refresh)} />
-            <TxButton label="2. Open short" state={openTx.state} disabled={!isController || c === 0n || b === 0n || (allowance ?? 0n) < c || saleOut === undefined}
-              onClick={() => openTx.run(async () => ({ address: hedge, abi: BallastHedgeAbi, functionName: "open", args: [c, b, (saleOut! * 99n) / 100n], account: address }), refresh)} />
+            <TxButton label="Open short" state={openTx.state} disabled={!isController || c === 0n || b === 0n || c > reserve || saleOut === undefined}
+              onClick={() => openTx.run(async () => ({ address: s.account, abi: BallastAccountAbi, functionName: "openHedge", args: [c, b, (saleOut! * 99n) / 100n], account: address }), refresh)} />
           </div>
-          <p className="mt-2 text-xs text-muted">One transaction: posts collateral to Morpho, borrows BTC, sells it in Mezo&apos;s MUSD/BTC pool (≤1% slippage).</p>
-          <div className="mt-3 space-y-2"><TxStatus state={approveTx.state} /><TxStatus state={openTx.state} /></div>
-          {(heldMusd ?? 0n) + (heldBtc ?? 0n) > 0n && (
-            <div className="mt-4 border-t border-border pt-4">
-              <p className="mb-2 text-sm">The module holds {fmt(heldMusd)} MUSD and {fmt(heldBtc, 18, 8)} BTC (your collateral back, plus any gain). Send it to your Ballast account, where it is credited as your MUSD and can repay your Mezo loan.</p>
-              <TxButton variant="secondary" label="Send to my Ballast account" state={sendTx.state} disabled={!isController}
-                onClick={() => sendTx.run(async () => ({ address: hedge, abi: BallastHedgeAbi, functionName: "sendToAccount", account: address }), refresh)} />
-              <div className="mt-2"><TxStatus state={sendTx.state} /></div>
-            </div>
-          )}
+          <p className="mt-2 text-xs text-muted">One transaction from your account: takes the collateral from the hedge reserve, posts it to Morpho, borrows BTC and sells it in Mezo&apos;s MUSD/BTC pool (≤1% slippage).</p>
+          <div className="mt-3"><TxStatus state={openTx.state} /></div>
         </Card>
       ) : (
         <Card title="Close the short">
           <p className="text-sm num">
-            Buying back {fmt(owed, 18, 8)} BTC (+2% buffer) costs ≈ {fmt(needMusd)} MUSD in the pool. The module holds {fmt(heldMusd)} MUSD
-            {topUp > 0n ? <>, so <strong>{fmt(topUp)} MUSD</strong> will be pulled from your wallet to cover the difference.</> : "."}
+            Buying back {fmt(owed, 18, 8)} BTC (+2% buffer) costs ≈ {fmt(needMusd)} MUSD in the pool. The sale proceeds are {fmt(heldMusd)} MUSD
+            {topUp > 0n ? <>, so the hedge lost money: <strong>{fmt(topUp)} MUSD</strong> will come from the hedge reserve (then your MUSD in the account) to cover the difference.</> : ". If more comes back than the account put in, the difference repays your Mezo loan."}
           </p>
+          {!canTopUp && <div className="mt-3"><Notice tone="bad">The account does not hold enough MUSD to cover the difference. Deposit MUSD into the account first.</Notice></div>}
           <div className="mt-4 flex flex-wrap gap-2">
-            {topUp > 0n && (
-              <TxButton variant="secondary" label={(allowance ?? 0n) >= topUp ? "Top-up approved" : `1. Approve ${fmt(topUp)} MUSD top-up`} state={topTx.state} disabled={!isController || (allowance ?? 0n) >= topUp}
-                onClick={() => topTx.run(async () => ({ address: cfg.mezo.MUSD, abi: MUSDAbi, functionName: "approve", args: [hedge, topUp], account: address }), refresh)} />
-            )}
-            <TxButton label={topUp > 0n ? "2. Close short" : "Close short"} state={closeTx.state} disabled={!isController || needMusd === undefined || (topUp > 0n && (allowance ?? 0n) < topUp)}
-              onClick={() => closeTx.run(async () => ({ address: hedge, abi: BallastHedgeAbi, functionName: "close", args: [(heldMusd ?? 0n) + topUp, owed, topUp], account: address }), refresh)} />
+            <TxButton label="Close short" state={closeTx.state} disabled={!isController || needMusd === undefined || !canTopUp}
+              onClick={() => closeTx.run(async () => ({ address: s.account, abi: BallastAccountAbi, functionName: "closeHedge", args: [(heldMusd ?? 0n) + topUp, owed, topUp, zeroAddress, zeroAddress], account: address }), refresh)} />
           </div>
-          <p className="mt-2 text-xs text-muted">One transaction: buys BTC in the pool, repays the whole Morpho debt (interest accrued first), withdraws your MUSD collateral to the module.</p>
-          <div className="mt-3 space-y-2"><TxStatus state={topTx.state} /><TxStatus state={closeTx.state} /></div>
+          <p className="mt-2 text-xs text-muted">One transaction from your account: buys BTC in the pool, repays the whole Morpho debt (interest accrued first), and brings the collateral and any leftover back into the account. Gains repay the loan; the rest returns to the hedge reserve.</p>
+          <div className="mt-3"><TxStatus state={closeTx.state} /></div>
         </Card>
       )}
     </>

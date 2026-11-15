@@ -21,44 +21,6 @@
     "MusdNttTransceiver": "0x0E628A1C34c92F0aA85aF998814Ce4f03cAA5913"
   },
   "ballast": {
-    "deployTx": {
-      "BallastRepaymentAdapter": {
-        "hash": "0x8fefd7dd8602116059eabbac2c575f16fdcbc21856b8cd0b8cb203a2b578afd5",
-        "block": 16764880
-      },
-      "Morpho": {
-        "hash": "0x6ca88599a87af54cb4b44fb659ed46d03bdb8bae88088cfc8167a28ad9fb5266",
-        "block": 16772885
-      },
-      "AdaptiveCurveIrm": {
-        "hash": "0x5c81aaae38748126e948eef36cde8987372fb5d9e3ee39b4e6af173ab84a3ee5",
-        "block": 16772890
-      },
-      "BallastMezoOracle": {
-        "hash": "0xfcb28974c94d6583f20cf250db33dce9a3c5ce827b4d0a56de105e10aba6530e",
-        "block": 16772895
-      },
-      "BallastRouter": {
-        "hash": "0x2e65506efbfd3b640442aa0b776beedcc226a1d6a95e8e1481fb8eff1d815e27",
-        "block": 16783431
-      },
-      "BallastAccountNFT": {
-        "hash": "0xc965ca35cb228b59c8ee1338bebdeed5509ff33bda3f8653f68fa057c1049896",
-        "block": 16783433
-      },
-      "BallastFactory": {
-        "hash": "0xfcc3f118786ed4756cc04e5d8e4ab5970d1af07c97a3bd1c978bc69689f8ce54",
-        "block": 16783435
-      },
-      "BallastHedgeFactory": {
-        "hash": "0x222f0099ab646acde097d0fb86bbf3cc375636d7a9ccd7357812586595e81fa5",
-        "block": 16783481
-      },
-      "BallastBridgeReceiver": {
-        "hash": "0x0eafb75ae9bb63cff9add2a0dfdadab24d27b5ebff0838edd23c447d9944783e",
-        "block": 16783484
-      }
-    },
     "BallastRepaymentAdapter": "0x096f8C705fce216bdBAEc7f86022117682A9f7DC",
     "MorphoBTC": "0x7b7C000000000000000000000000000000000000",
     "Morpho": "0x3f2Be2a4a16e3fbc55e168B6cC56AA46Ff9cdC93",
@@ -67,16 +29,42 @@
     "MorphoMarketId": "0xffa1cd17869e9f195a2c9f6b218a5f8c3d90251640616b6da62604db0c482573",
     "BridgedUSDC": "0x48AE9354c560F2D4f26e41760e67fdd3f2E8C4F0",
     "UsdcMusdPool": "0x55a317f5DDC12C7F52922775f56930e5036c0047",
-    "BallastRouter": "0x4E3B2E53d35c74e537fBA6E3EAe38c21e176c791",
-    "BallastAccountNFT": "0x5483A6DCDFab53Dc1c43d5529420B05c678cEB0a",
-    "BallastFactory": "0xeddfA83A6253ec23583d6EeA959beaAFd8FC5C44",
+    "BallastBaseGateway": "0x8Da29e84f88F35f87549b5d8a8EF54e4aD1c298C",
+    "BallastRouter": "0xe10Bf81CdAEB11970377b2fD81fBb17B5AF36eed",
+    "BallastAccountNFT": "0xfDacc99E2b6df2fB8427DDB520998A3117a29124",
+    "BallastFactory": "0xa10B844dD88B1EE3cA896280A0A1E8F8d5Ed7514",
+    "deployTx": {
+      "BallastRouter": {
+        "hash": "0xd2f52c374c42173f509dbe0617f6dcc7531e6e36d317d6aca4f8c572c3d26ac0",
+        "block": 16791676
+      },
+      "BallastAccountNFT": {
+        "hash": "0x527cc4aec0e41a03e4df8e7b19aa9cdbd06c383bce7a6c51f819b04af81ae8d8",
+        "block": 16791677
+      },
+      "BallastFactory": {
+        "hash": "0x371dc377b329e7ad5a1159b533f50e28e02d6fdb7e96060149a1a1b115521db8",
+        "block": 16791678
+      },
+      "BallastHedgeFactory": {
+        "hash": "0xac7daa2712b58f5ee8ecf8976ce23bcb8b753a631787e262a92986b891489aef",
+        "block": 16791683
+      },
+      "BallastBridgeReceiver": {
+        "hash": "0x967fe1d56c689ba0b403a33fd50dbbdc5ce7989b75fb8baf28a90754ae6f9d72",
+        "block": 16791686
+      },
+      "DemoEscrow": {
+        "hash": "0x253c325316020ca594f636dd9ca4355b7cffd4adcd7460481e538d6f18150c4b",
+        "block": 16791824
+      }
+    },
+    "BallastHedgeFactory": "0x2A76297B8562D6380911fDa94f80c7D2bFCB6FD6",
+    "BallastBridgeReceiver": "0x514EADC7013D1aFb276CfA783A71f2D175bc3104",
     "tokenId": 1,
-    "BallastAccount": "0x1Ed5B7462545b4639d70fE18A300Bdbdb55910e0",
-    "createAccountTx": "0x3c6ab6b45bd60bf05d692a757046c4d89268c3103402bcf3a111de62d2bf56d6",
-    "BallastHedgeFactory": "0x912873e0618e5DBbb31a4145075f4bA44bE44db0",
-    "BallastBridgeReceiver": "0x841c8ad2795977D44c277CB294515a61421d2C98",
-    "BallastHedge": "0xd39db99E4F9C12C3A8933F9A94AFF7869558254a",
-    "BallastBaseGateway": "0x8Da29e84f88F35f87549b5d8a8EF54e4aD1c298C"
+    "BallastAccount": "0xe43257DB9B711c29A8e44c5C4F58950752FAf463",
+    "createAccountTx": "0xc27190d237b434623e0f25f98fff95dd2d77730eddd78b9b11b757bd64af3114",
+    "DemoEscrow": "0xE482DdF523A805338408dd48Fa785AA9603337E0"
   },
   "baseSepolia": {
     "_provenance": "Verified 2026-11-14: eth_chainId 84532; Wormhole core/token bridge from wormhole.com/docs/reference/contract-addresses and explorer-verified BridgeImplementation; chainId() reads; Mezo bridge bridgeContracts(10004) == this token bridge; USDC symbol/decimals reads.",
@@ -124,6 +112,56 @@
       "BallastBridgeReceiver": {
         "hash": "0x58e8051305c99293101bd499f39193786c55d7616101a314620e15eac3fbda80",
         "block": 16774152
+      }
+    }
+  },
+  "ballastV2": {
+    "_note": "v2 deployment (2026-11-14), replaced by v3 on 2026-11-15; loan closed and funds returned to the deployer",
+    "BallastRouter": "0x4E3B2E53d35c74e537fBA6E3EAe38c21e176c791",
+    "BallastAccountNFT": "0x5483A6DCDFab53Dc1c43d5529420B05c678cEB0a",
+    "BallastFactory": "0xeddfA83A6253ec23583d6EeA959beaAFd8FC5C44",
+    "BallastAccount": "0x1Ed5B7462545b4639d70fE18A300Bdbdb55910e0",
+    "tokenId": 1,
+    "createAccountTx": "0x3c6ab6b45bd60bf05d692a757046c4d89268c3103402bcf3a111de62d2bf56d6",
+    "BallastHedgeFactory": "0x912873e0618e5DBbb31a4145075f4bA44bE44db0",
+    "BallastHedge": "0xd39db99E4F9C12C3A8933F9A94AFF7869558254a",
+    "BallastBridgeReceiver": "0x841c8ad2795977D44c277CB294515a61421d2C98",
+    "deployTx": {
+      "BallastRepaymentAdapter": {
+        "hash": "0x8fefd7dd8602116059eabbac2c575f16fdcbc21856b8cd0b8cb203a2b578afd5",
+        "block": 16764880
+      },
+      "Morpho": {
+        "hash": "0x6ca88599a87af54cb4b44fb659ed46d03bdb8bae88088cfc8167a28ad9fb5266",
+        "block": 16772885
+      },
+      "AdaptiveCurveIrm": {
+        "hash": "0x5c81aaae38748126e948eef36cde8987372fb5d9e3ee39b4e6af173ab84a3ee5",
+        "block": 16772890
+      },
+      "BallastMezoOracle": {
+        "hash": "0xfcb28974c94d6583f20cf250db33dce9a3c5ce827b4d0a56de105e10aba6530e",
+        "block": 16772895
+      },
+      "BallastRouter": {
+        "hash": "0x2e65506efbfd3b640442aa0b776beedcc226a1d6a95e8e1481fb8eff1d815e27",
+        "block": 16783431
+      },
+      "BallastAccountNFT": {
+        "hash": "0xc965ca35cb228b59c8ee1338bebdeed5509ff33bda3f8653f68fa057c1049896",
+        "block": 16783433
+      },
+      "BallastFactory": {
+        "hash": "0xfcc3f118786ed4756cc04e5d8e4ab5970d1af07c97a3bd1c978bc69689f8ce54",
+        "block": 16783435
+      },
+      "BallastHedgeFactory": {
+        "hash": "0x222f0099ab646acde097d0fb86bbf3cc375636d7a9ccd7357812586595e81fa5",
+        "block": 16783481
+      },
+      "BallastBridgeReceiver": {
+        "hash": "0x0eafb75ae9bb63cff9add2a0dfdadab24d27b5ebff0838edd23c447d9944783e",
+        "block": 16783484
       }
     }
   }

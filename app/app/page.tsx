@@ -113,13 +113,13 @@ function PayLinkAndTransfer({ s, refetch }: { s: AccountState; refetch: () => vo
       </Card>
       <Card title="Transfer this account">
         <Notice tone="warn" title="This hands over everything">
-          Whoever holds the account NFT controls the whole account: the Mezo loan and its BTC collateral, the MUSD and reserve held here, and the hedge module. The new holder also takes on the debt.
-          Only plain wallet addresses are accepted (not contracts). Your custom payout address is cleared so income follows the new holder.
+          Whoever holds the account NFT controls the whole account: the Mezo loan and its BTC collateral, the MUSD and reserve held here, and the hedge. The new holder also takes on the debt.
+          It can go to a wallet, or to a contract that accepts NFTs (a marketplace escrow, a multisig), so the account can be sold whole. Your custom payout address is cleared so income follows the new holder.
         </Notice>
         <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-end">
-          <Field label="New holder (wallet address)"><input className={inputCls + " font-mono"} placeholder="0x…" value={to} onChange={(e) => setTo(e.target.value)} /></Field>
+          <Field label="New holder (wallet or NFT-ready contract)"><input className={inputCls + " font-mono"} placeholder="0x…" value={to} onChange={(e) => setTo(e.target.value)} /></Field>
           <Button variant="danger" disabled={!isController || !isAddress(to) || tx.state.s === "pending" || tx.state.s === "wallet"} onClick={() =>
-            tx.run(async () => ({ address: cfg.ballast.BallastAccountNFT, abi: BallastAccountNFTAbi, functionName: "transferFrom", args: [s.controller, to as Address, s.tokenId], account: address }), refetch)}>Transfer account</Button>
+            tx.run(async () => ({ address: cfg.ballast.BallastAccountNFT, abi: BallastAccountNFTAbi, functionName: "safeTransferFrom", args: [s.controller, to as Address, s.tokenId], account: address }), refetch)}>Transfer account</Button>
         </div>
         <div className="mt-3"><TxStatus state={tx.state} /></div>
       </Card>
