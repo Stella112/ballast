@@ -4,6 +4,8 @@ Deadline: Mezo Buildathon Wave 2, **2026-11-15** (exact cutoff/timezone: verify 
 
 | Item | State | Next action |
 |---|---|---|
+| **v3 (15 Nov): NFT sale through contracts, hedge opened by the account** | **VERIFIED LIVE**: deployed 07:22 UTC, loan migrated, 53 tests pass, live pay / keeper / escrow sale / account hedge open+close; Router, NFT, Factory, Account, HedgeFactory, BridgeReceiver source-verified | browser-wallet run; Base USDC route re-run on the v3 receiver |
+| Pay with MUSD from Base over Wormhole NTT | **BLOCKED on the guardian**: gateway deployed + verified on Base Sepolia, 4 fork tests; Mezo→Base funding transfer (sequence 90, 14 Nov 23:33 UTC) still unsigned | retry `ntt-redeem-base 90`, then `base-musd-pay` + `ntt-deliver-mezo` |
 | **v2 contracts (owner's final description)** | **VERIFIED LIVE**: deployed, source-verified, 46 tests, live pay / keeper / NFT transfer / hedge (docs/TEST_EVIDENCE.md, v2 section) | browser-wallet run |
 | Repo audit / tools | VERIFIED | — |
 | Mezo addresses, ABIs, params | VERIFIED | docs/VERIFICATION.md |

@@ -45,3 +45,9 @@
 - **BallastHedge / BallastHedgeFactory**: one module per account, controlled by the NFT holder. `open` = supplyCollateral + borrow on Morpho Blue, sell BTC on Mezo Pools; `close(musdIn, minBtcOut, topUp)` = buy back, repay all, withdraw collateral; `sendToAccount` = `account.depositMUSD` (credited as owner funds).
 - **BallastMezoOracle**: Morpho price = `1e54 / PriceFeed.fetchPrice()` (MUSD collateral quoted in 18-decimal BTC).
 - **BallastBridgeReceiver**: `settle(vaa, hints)` = Wormhole `completeTransferWithPayload` → swap wrapped USDC → MUSD (stable pool) → `router.payInvoice`; refunds on any failure.
+
+## v3 (2026-11-15): what changed
+- **BallastAccountNFT**: wallets can receive it with any transfer; contracts only through `safeTransferFrom` (they must implement `IERC721Receiver`), so it can be listed in an escrow and sold. A plain `transferFrom` to a contract reverts `UseSafeTransferForContracts`.
+- **BallastAccount**: `setHedgeModule(module)`, `openHedge(collateral, borrowBtc, minMusdOut)` (collateral comes from `hedgeReserve`, tracked in `hedgePosted`) and `closeHedge(musdIn, minBtcOut, topUp, hints)` (top-up from the reserve, then the owner's MUSD; everything returns to the account; a gain repays the loan up to `maxRepayable()`, the rest goes back to the reserve). Controller-only.
+- **BallastHedge**: callable by the account as well as the NFT holder.
+- **BallastBaseGateway** (Base Sepolia): `pay(account, amount, reference)` forwards MUSD through MUSD's Wormhole NTT manager with the account as recipient on Mezo; a keeper then calls `processIncome`.

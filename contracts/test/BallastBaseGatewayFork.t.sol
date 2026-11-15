@@ -12,7 +12,7 @@ contract BallastBaseGatewayForkTest is Test {
     address constant MUSD = 0x560985f804De8187E8FBA94F7127Bc4c0e54AEA5;
     address constant NTT = 0x6590DFF6abEd7C077839E8227A4f12Ec90E6D85F;
     uint16 constant MEZO = 50;
-    address constant ACCOUNT_ON_MEZO = 0x1Ed5B7462545b4639d70fE18A300Bdbdb55910e0;
+    address constant ACCOUNT_ON_MEZO = 0xe43257DB9B711c29A8e44c5C4F58950752FAf463;
 
     BallastBaseGateway gw;
     address payer = makeAddr("payer");

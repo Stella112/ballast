@@ -168,7 +168,7 @@ The demo shows one real payment travelling from Base to a real Mezo loan, with e
 
 ---
 
-## Implementation status and evidence (v2, Mezo testnet chain 31611, 14 Nov 2026)
+## Implementation status and evidence (v3, Mezo testnet chain 31611, 15 Nov 2026)
 
 Every row marked **Live** has confirmed testnet transactions (status 1). Addresses: [DEPLOYMENTS.md](DEPLOYMENTS.md). Full detail: [TEST_EVIDENCE.md](TEST_EVIDENCE.md).
 
@@ -187,12 +187,14 @@ Every row marked **Live** has confirmed testnet transactions (status 1). Address
 | SIMULATED BTC drop, clearly labelled | **Live** | Hedge page, "SIMULATED — not a real price move" |
 | Pay from Base Sepolia to a Mezo loan | **MUSD over NTT: deployed, live run pending. USDC route: live** | See differences below |
 
+Rows above that link v2 transactions (14 Nov) describe behaviour that is unchanged in v3; the v3 re-runs are in [TEST_EVIDENCE.md](TEST_EVIDENCE.md).
+
 ### Where the testnet build differs from the text
 
 1. **Pay from Base (MUSD over Wormhole NTT, as described): built and deployed; live end-to-end run pending.** An earlier check concluded from Mezo's docs that the MUSD NTT bridge was mainnet-only. That was wrong: on-chain reads on 14 Nov found MUSD's canonical NTT managers on Mezo testnet and Base Sepolia, registered as each other's peers (addresses in [VERIFICATION.md](VERIFICATION.md)). `BallastBaseGateway` on Base Sepolia ([`0x8Da2…298C`](https://base-sepolia.blockscout.com/address/0x8Da29e84f88F35f87549b5d8a8EF54e4aD1c298C), source verified) takes the payer's MUSD and sends it through that bridge with the Ballast Account as the recipient on Mezo; a keeper then applies the policy. It passes 4 tests against live Base Sepolia state. **Not yet proven live:** the demo payer needs MUSD on Base first, and the transfer that brings it there ([Mezo tx](https://explorer.test.mezo.org/tx/0x7455fef58ba587c270c635432b263b6792e64a2ea15fe9c2c315c1513a0a6c25), 30 MUSD, bridge message #90) has not been signed by the Wormhole testnet guardian; the previous message from the same bridge (#89, another user, 19:13 UTC) is also unsigned. The earlier USDC route (Wormhole token bridge + a pool seeded by Ballast) remains live on invoice links and is proven with two payments.
 2. **Morpho Blue on Mezo testnet was deployed by Ballast**, from Morpho's unmodified v1.0.0 source, and **its BTC lending liquidity (0.0012 BTC) was supplied by Ballast**. Morpho's own deployment exists on Mezo mainnet only.
-3. **The hedge lives in a per-account hedge module**, a separate contract controlled by the same NFT, not inside the account contract itself. Proceeds are sent to the account as the owner's MUSD.
-4. **NFT transfers go to wallet addresses only**, not contracts, so a marketplace escrow sale is not supported yet. A direct wallet-to-wallet transfer moves the whole account.
+3. **The hedge is opened and closed by the account (v3).** `account.openHedge` takes the collateral from the account's hedge reserve; `account.closeHedge` brings everything back into the account, repays the loan with any gain and returns the rest to the reserve. The Morpho position itself sits in the account's hedge module, a small contract only the account and its NFT holder can use. Live: [open](https://explorer.test.mezo.org/tx/0x09d17ce366ce7ef78439386f04b6238476f19d99a51a4a74651cf3c66c3cc447), [close](https://explorer.test.mezo.org/tx/0xd6a52ed49876862609d15578cf56b51b5372a38a2f45065aa8337675363ded54).
+4. **The NFT can be sold whole (v3).** It can go to a wallet, or to any contract that accepts NFTs (a marketplace escrow, a multisig) through `safeTransferFrom`. Live: [listed in an escrow contract](https://explorer.test.mezo.org/tx/0x2d8e01521db67bb4542be4383d3f1a053f219c17a890c19f99995ccd630f857a) with the loan open, then [released to the buyer](https://explorer.test.mezo.org/tx/0x43626e6369e6e8304ee33348492fe1b0c45f08333d404e8937a36bd5c208b8d9). A plain `transferFrom` to a contract is still rejected so the account cannot be stranded in a contract that never expected it.
 5. **`pay()` without position hints costs about 4 million gas** on today's list of about 325 loans; the app and integrators should use `payWithHints`, which does the same thing with hints computed off-chain.
 6. **The hedge share is held as a MUSD reserve** in the account until the owner opens a hedge; it is not invested automatically.
 7. **"MUSD ahead of you" now counts only what a redemption can take** (each loan's debt minus its 200 MUSD gas deposit, as in Mezo's `_redeemCollateralFromTrove`), so a redemption up to that size is absorbed by the loans ahead at that block. It is still a snapshot: interest accrues, loans below 110% are skipped, and other borrowers move.

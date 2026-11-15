@@ -4,12 +4,14 @@ import { cfg } from "@/lib/config";
 
 // Past runs: copied from docs/TEST_EVIDENCE.md (each hash links to the explorer; receipts status 1).
 const PAST = [
-  { what: "Account #1 created (NFT minted)", block: 16762107, hash: "0xc8c82af3b6baf50c7d516e124e2d7ae91dee2c680274caf1bf2f492cac3c7815" },
-  { what: "Account opens Mezo trove: 2000 MUSD against 0.048 BTC", block: 16762136, hash: "0x73e6312cd962106ef5b07f6a2db4e1e8572580c0d9df9b4b404ebd8c26514940" },
-  { what: "Controller repays 10 MUSD (debt −10.000000 exactly)", block: 16762177, hash: "0xa50903d6df72f25c049975d07898160ae6230f76f10687f6366eeb79c16692ad" },
-  { what: "Policy set: 20% repay / 5% reserve / 75% spendable", block: 16762223, hash: "0x7a4e019a6461fbeebd998e5083db19e3d493668146249547b85072da2dac5e4a" },
-  { what: "Separate wallet pays 100 MUSD invoice → 75 / 5 / 20, debt −20 exactly, same tx", block: 16762254, hash: "0x3b9dce365e1ca8b2e043cc663fbc21c24b5f5364a7c90b2cd68be9571a3e5bc7" },
-  { what: "Radar quote 12.756783 MUSD to pass next trove → repaid → rank #165 → #166", block: 16762619, hash: "0xea07e53b0a2664cffc796b8e1063c0174979068ef0f200ccd5d810c3bd798c75" },
+  { what: "Account #1 created (NFT minted)", block: 16791716, hash: "0xc27190d237b434623e0f25f98fff95dd2d77730eddd78b9b11b757bd64af3114" },
+  { what: "Account opens its Mezo loan: 2,100 MUSD against 0.048 BTC", block: 16791736, hash: "0x1c12b684ebebac2154275e09462345386ee597cce37f7c4ad13b58fb62dee76e" },
+  { what: "Separate wallet pays 100 MUSD through the router → 75 owner / 5 hedge reserve / 20 repaid, ratio 134.15% → 135.33%", block: 16791774, hash: "0xbec250c4a877f3b637b8935e1713115d8d5989626614c9e97f3cdf12938bbd5e" },
+  { what: "Keeper: a non-owner wallet applies the policy to 50 MUSD sent straight to the account", block: 16791808, hash: "0x93bbadeb9ad67c95f32ca5507ee6b7d9b28cec00d4c327dd857868aaf4b1a9cd" },
+  { what: "Account NFT listed in an escrow contract with the loan open", block: 16791829, hash: "0x2d8e01521db67bb4542be4383d3f1a053f219c17a890c19f99995ccd630f857a" },
+  { what: "Escrow releases the NFT to a buyer: the whole account moves", block: 16791831, hash: "0x43626e6369e6e8304ee33348492fe1b0c45f08333d404e8937a36bd5c208b8d9" },
+  { what: "Account opens a BTC short from its hedge reserve (Morpho Blue + Mezo Pools)", block: 16791891, hash: "0x09d17ce366ce7ef78439386f04b6238476f19d99a51a4a74651cf3c66c3cc447" },
+  { what: "Account closes the short; funds return to the account", block: 16791907, hash: "0xd6a52ed49876862609d15578cf56b51b5372a38a2f45065aa8337675363ded54" },
 ];
 
 export default function DemoPage() {
@@ -34,7 +36,7 @@ export default function DemoPage() {
           <li>Back as merchant: Radar and <Link className="underline" href="/app/activity">Activity</Link> show the new state at a newer block.</li>
         </ol>
       </Card>
-      <Card title="Past run on Mezo testnet" right={<Badge tone="neutral">Recorded 2026-11-13 · not live state</Badge>}>
+      <Card title="Past run on Mezo testnet" right={<Badge tone="neutral">Recorded 2026-11-15 · not live state</Badge>}>
         <p className="mb-3 text-sm text-muted">Demo account <Addr a={cfg.ballast.BallastAccount} />, NFT #1. Every row links to its explorer transaction.</p>
         <ul className="divide-y divide-border text-sm">
           {PAST.map((p) => (

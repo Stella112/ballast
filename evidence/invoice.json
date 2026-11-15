@@ -1,4 +1,4 @@
 {"types":{"EIP712Domain":[{"name":"name","type":"string"},{"name":"version","type":"string"},{"name":"chainId","type":"uint256"},{"name":"verifyingContract","type":"address"}],
 "Invoice":[{"name":"tokenId","type":"uint256"},{"name":"invoiceId","type":"bytes32"},{"name":"amount","type":"uint256"},{"name":"expiry","type":"uint256"}]},
-"primaryType":"Invoice","domain":{"name":"BallastRouter","version":"1","chainId":31611,"verifyingContract":"0x4E3B2E53d35c74e537fBA6E3EAe38c21e176c791"},
-"message":{"tokenId":1,"invoiceId":"0x6b4e9713a5726cdb6ea5a86c3acb73b55261c225a46dd4bae859966e267f9657","amount":"2000000000000000000","expiry":1794701287}}
+"primaryType":"Invoice","domain":{"name":"BallastRouter","version":"1","chainId":31611,"verifyingContract":"0xe10Bf81CdAEB11970377b2fD81fBb17B5AF36eed"},
+"message":{"tokenId":1,"invoiceId":"0xf4dbaa895096bdedb983fdfef7b898c217cab84be8f86fa8ac246ba8cd9a6f5b","amount":"2000000000000000000","expiry":1794735658}}

@@ -1,21 +1,28 @@
 # Deployments — Mezo testnet (chain 31611)
 
-## Current: v2 (deployed 2026-11-14, source commit `881a6cc`)
-Compiler solc 0.8.24, EVM london, optimizer 200 runs. Machine-readable copy: `config/deployments.mezo-testnet.json` (`ballast` = v2, `ballastV1` = first deployment). All contracts below are source-verified on the Mezo explorer. No admin, owner or upgrade keys on any Ballast contract.
+## Current: v3 (deployed 2026-11-15, 07:22 UTC)
+Compiler solc 0.8.24, EVM london, optimizer 200 runs. Machine-readable copy: `config/deployments.mezo-testnet.json` (`ballast` = v3, `ballastV2` and `ballastV1` = earlier deployments). No admin or upgrade keys.
+
+v3 changes two things against v2: the account NFT can be sent to contracts that accept NFTs (so it can be sold through an escrow), and the account itself opens and closes the hedge from its hedge reserve.
 
 | Contract | Address | Deploy tx | Block |
 |---|---|---|---|
-| BallastRouter | [`0x4E3B2E53d35c74e537fBA6E3EAe38c21e176c791`](https://explorer.test.mezo.org/address/0x4E3B2E53d35c74e537fBA6E3EAe38c21e176c791) | [`0x2e65506e…`](https://explorer.test.mezo.org/tx/0x2e65506efbfd3b640442aa0b776beedcc226a1d6a95e8e1481fb8eff1d815e27) | 16783431 |
-| BallastAccountNFT | [`0x5483A6DCDFab53Dc1c43d5529420B05c678cEB0a`](https://explorer.test.mezo.org/address/0x5483A6DCDFab53Dc1c43d5529420B05c678cEB0a) | [`0xc965ca35…`](https://explorer.test.mezo.org/tx/0xc965ca35cb228b59c8ee1338bebdeed5509ff33bda3f8653f68fa057c1049896) | 16783433 |
-| BallastFactory | [`0xeddfA83A6253ec23583d6EeA959beaAFd8FC5C44`](https://explorer.test.mezo.org/address/0xeddfA83A6253ec23583d6EeA959beaAFd8FC5C44) | [`0xfcc3f118…`](https://explorer.test.mezo.org/tx/0xfcc3f118786ed4756cc04e5d8e4ab5970d1af07c97a3bd1c978bc69689f8ce54) | 16783435 |
-| BallastAccount #1 (demo, owns the Mezo loan) | [`0x1Ed5B7462545b4639d70fE18A300Bdbdb55910e0`](https://explorer.test.mezo.org/address/0x1Ed5B7462545b4639d70fE18A300Bdbdb55910e0) | createAccount [`0x3c6ab6b4…`](https://explorer.test.mezo.org/tx/0x3c6ab6b45bd60bf05d692a757046c4d89268c3103402bcf3a111de62d2bf56d6) | 16783439 |
-| BallastHedgeFactory | [`0x912873e0618e5DBbb31a4145075f4bA44bE44db0`](https://explorer.test.mezo.org/address/0x912873e0618e5DBbb31a4145075f4bA44bE44db0) | [`0x222f0099…`](https://explorer.test.mezo.org/tx/0x222f0099ab646acde097d0fb86bbf3cc375636d7a9ccd7357812586595e81fa5) | 16783481 |
-| BallastHedge for account #1 | [`0xd39db99E4F9C12C3A8933F9A94AFF7869558254a`](https://explorer.test.mezo.org/address/0xd39db99E4F9C12C3A8933F9A94AFF7869558254a) | [`0x09ec7571…`](https://explorer.test.mezo.org/tx/0x09ec7571e4a473ee0ac307e665f1d56df93659dc603c3bf35743869082f74bcc) | 16783612 |
-| BallastBridgeReceiver (Base Sepolia USDC → invoice) | [`0x841c8ad2795977D44c277CB294515a61421d2C98`](https://explorer.test.mezo.org/address/0x841c8ad2795977D44c277CB294515a61421d2C98) | [`0x0eafb75a…`](https://explorer.test.mezo.org/tx/0x0eafb75ae9bb63cff9add2a0dfdadab24d27b5ebff0838edd23c447d9944783e) | 16783484 |
-| BallastRepaymentAdapter (wallet-held loans; unchanged) | [`0x096f8C705fce216bdBAEc7f86022117682A9f7DC`](https://explorer.test.mezo.org/address/0x096f8C705fce216bdBAEc7f86022117682A9f7DC) | [`0x8fefd7dd…`](https://explorer.test.mezo.org/tx/0x8fefd7dd8602116059eabbac2c575f16fdcbc21856b8cd0b8cb203a2b578afd5) | 16764880 |
-| Morpho Blue v1.0.0 (deployed by Ballast, unmodified upstream) | [`0x3f2Be2a4a16e3fbc55e168B6cC56AA46Ff9cdC93`](https://explorer.test.mezo.org/address/0x3f2Be2a4a16e3fbc55e168B6cC56AA46Ff9cdC93) | [`0x6ca88599…`](https://explorer.test.mezo.org/tx/0x6ca88599a87af54cb4b44fb659ed46d03bdb8bae88088cfc8167a28ad9fb5266) | 16772885 |
-| AdaptiveCurveIrm v1.0.0 | [`0xf3e3baD2f52662FDdef1f1C53Ce733E6703cB484`](https://explorer.test.mezo.org/address/0xf3e3baD2f52662FDdef1f1C53Ce733E6703cB484) | [`0x5c81aaae…`](https://explorer.test.mezo.org/tx/0x5c81aaae38748126e948eef36cde8987372fb5d9e3ee39b4e6af173ab84a3ee5) | 16772890 |
-| BallastMezoOracle | [`0x301FEEf08C25D2F8AE5EfF95E8f32253006108d9`](https://explorer.test.mezo.org/address/0x301FEEf08C25D2F8AE5EfF95E8f32253006108d9) | [`0xfcb28974…`](https://explorer.test.mezo.org/tx/0xfcb28974c94d6583f20cf250db33dce9a3c5ce827b4d0a56de105e10aba6530e) | 16772895 |
+| BallastRouter | [`0xe10Bf81CdAEB11970377b2fD81fBb17B5AF36eed`](https://explorer.test.mezo.org/address/0xe10Bf81CdAEB11970377b2fD81fBb17B5AF36eed) | [0xd2f52c37…6ac0](https://explorer.test.mezo.org/tx/0xd2f52c374c42173f509dbe0617f6dcc7531e6e36d317d6aca4f8c572c3d26ac0) | 16791676 |
+| BallastAccountNFT | [`0xfDacc99E2b6df2fB8427DDB520998A3117a29124`](https://explorer.test.mezo.org/address/0xfDacc99E2b6df2fB8427DDB520998A3117a29124) | [0x527cc4ae…e8d8](https://explorer.test.mezo.org/tx/0x527cc4aec0e41a03e4df8e7b19aa9cdbd06c383bce7a6c51f819b04af81ae8d8) | 16791677 |
+| BallastFactory | [`0xa10B844dD88B1EE3cA896280A0A1E8F8d5Ed7514`](https://explorer.test.mezo.org/address/0xa10B844dD88B1EE3cA896280A0A1E8F8d5Ed7514) | [0x371dc377…1db8](https://explorer.test.mezo.org/tx/0x371dc377b329e7ad5a1159b533f50e28e02d6fdb7e96060149a1a1b115521db8) | 16791678 |
+| BallastHedgeFactory | [`0x2A76297B8562D6380911fDa94f80c7D2bFCB6FD6`](https://explorer.test.mezo.org/address/0x2A76297B8562D6380911fDa94f80c7D2bFCB6FD6) | [0xac7daa27…9aef](https://explorer.test.mezo.org/tx/0xac7daa2712b58f5ee8ecf8976ce23bcb8b753a631787e262a92986b891489aef) | 16791683 |
+| BallastBridgeReceiver (Base Sepolia USDC → invoice) | [`0x514EADC7013D1aFb276CfA783A71f2D175bc3104`](https://explorer.test.mezo.org/address/0x514EADC7013D1aFb276CfA783A71f2D175bc3104) | [0x967fe1d5…9d72](https://explorer.test.mezo.org/tx/0x967fe1d56c689ba0b403a33fd50dbbdc5ce7989b75fb8baf28a90754ae6f9d72) | 16791686 |
+| BallastAccount #1 (demo, owns the Mezo loan) | [`0xe43257DB9B711c29A8e44c5C4F58950752FAf463`](https://explorer.test.mezo.org/address/0xe43257DB9B711c29A8e44c5C4F58950752FAf463) | createAccount [0xc27190d2…3114](https://explorer.test.mezo.org/tx/0xc27190d237b434623e0f25f98fff95dd2d77730eddd78b9b11b757bd64af3114) | 16791716 |
+| BallastHedge for account #1 (the account's hedge module) | [`0x5bCB976EF92673ABbc564583155CdC0AC86846CC`](https://explorer.test.mezo.org/address/0x5bCB976EF92673ABbc564583155CdC0AC86846CC) | [0x2e382080…0fd8](https://explorer.test.mezo.org/tx/0x2e382080a5134d8ffb5a453f3073bf832002122fbd43c5dbf998370f4c810fd8) | |
+| DemoEscrow (test-only NFT escrow used for the sale proof) | [`0xE482DdF523A805338408dd48Fa785AA9603337E0`](https://explorer.test.mezo.org/address/0xE482DdF523A805338408dd48Fa785AA9603337E0) | | |
+
+Unchanged from v2 and still in use: BallastRepaymentAdapter `0x096f8C705fce216bdBAEc7f86022117682A9f7DC`, Morpho Blue `0x3f2Be2a4a16e3fbc55e168B6cC56AA46Ff9cdC93`, AdaptiveCurveIrm `0xf3e3baD2f52662FDdef1f1C53Ce733E6703cB484`, BallastMezoOracle `0x301FEEf08C25D2F8AE5EfF95E8f32253006108d9`, and BallastBaseGateway on Base Sepolia (below).
+Source verification on the Mezo explorer: see docs/STATUS.md for the current state of each v3 contract.
+
+Migration: the v2 loan was closed ([closeTrove](https://explorer.test.mezo.org/tx/0x3f9946876e35aa01687eba45d9c3b0ff6d08fab27e27a31fe28d11fdaeab4a7a)) and its BTC and MUSD returned to the demo wallet; the v3 account then opened a new loan ([openTrove](https://explorer.test.mezo.org/tx/0x1c12b684ebebac2154275e09462345386ee597cce37f7c4ad13b58fb62dee76e), 2,100 MUSD against 0.048 BTC).
+
+## Superseded: v2 (2026-11-14) — kept because earlier evidence refers to it
+Router `0x4E3B2E53d35c74e537fBA6E3EAe38c21e176c791`, NFT `0x5483A6DCDFab53Dc1c43d5529420B05c678cEB0a`, Factory `0xeddfA83A6253ec23583d6EeA959beaAFd8FC5C44`, Account #1 `0x1Ed5B7462545b4639d70fE18A300Bdbdb55910e0` (loan closed), HedgeFactory `0x912873e0618e5DBbb31a4145075f4bA44bE44db0`, Hedge `0xd39db99E4F9C12C3A8933F9A94AFF7869558254a`, BridgeReceiver `0x841c8ad2795977D44c277CB294515a61421d2C98`.
 
 Created or funded by Ballast because nothing existed on testnet (disclosed in the app):
 - Morpho market `0xffa1cd17869e9f195a2c9f6b218a5f8c3d90251640616b6da62604db0c482573` (loan = Mezo BTC `0x7b7C…0000`, collateral = MUSD, LLTV 86%); its 0.0012 BTC of lending liquidity came from the Ballast deployer.

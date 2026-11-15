@@ -64,7 +64,8 @@
     "tokenId": 1,
     "BallastAccount": "0xe43257DB9B711c29A8e44c5C4F58950752FAf463",
     "createAccountTx": "0xc27190d237b434623e0f25f98fff95dd2d77730eddd78b9b11b757bd64af3114",
-    "DemoEscrow": "0xE482DdF523A805338408dd48Fa785AA9603337E0"
+    "DemoEscrow": "0xE482DdF523A805338408dd48Fa785AA9603337E0",
+    "BallastHedge": "0x5bCB976EF92673ABbc564583155CdC0AC86846CC"
   },
   "baseSepolia": {
     "_provenance": "Verified 2026-11-14: eth_chainId 84532; Wormhole core/token bridge from wormhole.com/docs/reference/contract-addresses and explorer-verified BridgeImplementation; chainId() reads; Mezo bridge bridgeContracts(10004) == this token bridge; USDC symbol/decimals reads.",
