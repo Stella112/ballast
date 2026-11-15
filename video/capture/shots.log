@@ -1,0 +1,19 @@
+ok tx-pay
+ok tx-keeper
+ok tx-cap
+ok tx-escrow-list
+ok tx-escrow-release
+ok tx-hedge-open
+ok tx-hedge-close
+ok tx-base-settle
+ok tx-open-loan
+ok app-paylink
+ok app-home
+ok app-demo
+FAIL app-account Page.wait_for_function: Timeout 180000ms exceeded.
+ok app-radar
+ok app-radar-2
+ok app-hedge
+ok app-hedge-2
+ok app-payback
+exit 0

@@ -1,0 +1,47 @@
+[
+  {
+    "id": "hook",
+    "say": "Borrow against your Bitcoin on Mezo, and you can lose it two ways: redemption, or liquidation. Meanwhile, the money you earn never touches the loan.",
+    "captions": ["Borrow against your Bitcoin on Mezo, and you can lose it two ways:", "redemption, or liquidation.", "Meanwhile, the money you earn never touches the loan."]
+  },
+  {
+    "id": "pitch",
+    "say": "Ballast is the cash-flow autopilot for Bitcoin-backed loans. Your loan lives in an account you control with an N F T. Every payment you receive is split by your policy: part repays the loan, part builds a hedge reserve, and the rest is yours. Each payment moves you further from redemption and liquidation.",
+    "captions": ["Ballast is the cash-flow autopilot for Bitcoin-backed loans.", "Your loan lives in an account you control with an NFT.", "Every payment you receive is split by your policy:", "part repays the loan, part builds a hedge reserve, and the rest is yours.", "Each payment moves you further from redemption and liquidation."]
+  },
+  {
+    "id": "proof",
+    "say": "This is real, on Mezo testnet. A customer pays one hundred M U S D through the Ballast router. In one transaction: seventy-five goes to the owner, five to the hedge reserve, and twenty repays the loan. The collateral ratio rises from one thirty-four point one five, to one thirty-five point three three percent. Here it is on the explorer.",
+    "captions": ["This is real, on Mezo testnet.", "A customer pays 100 MUSD through the Ballast router.", "In one transaction: 75 to the owner, 5 to the hedge reserve, 20 repays the loan.", "The collateral ratio rises from 134.15% to 135.33%.", "Here it is on the explorer."]
+  },
+  {
+    "id": "radar",
+    "say": "Redemption Radar reads Mezo's own sorted list of loans. It shows your place in the redemption line, the M U S D ahead of you, your liquidation price, and exactly how much to repay to pass the next ten or fifty loans.",
+    "captions": ["Redemption Radar reads Mezo's own sorted list of loans.", "It shows your place in the redemption line, the MUSD ahead of you,", "your liquidation price, and exactly how much to repay", "to pass the next 10 or 50 loans."]
+  },
+  {
+    "id": "keeper",
+    "say": "No signature is needed per payment. When money lands in the account directly, anyone can trigger the policy, but nobody can redirect the funds. And repayments stop at Mezo's minimum debt: the excess goes to the owner.",
+    "captions": ["No signature is needed per payment.", "When money lands in the account directly, anyone can trigger the policy,", "but nobody can redirect the funds.", "Repayments stop at Mezo's minimum debt: the excess goes to the owner."]
+  },
+  {
+    "id": "nft",
+    "say": "The account is an N F T, so it can be sold whole. Here it is, listed in an escrow contract with the loan still open, then released to a buyer. The loan, the collateral and the reserve all move with it.",
+    "captions": ["The account is an NFT, so it can be sold whole.", "Here it is, listed in an escrow contract with the loan still open,", "then released to a buyer.", "The loan, the collateral and the reserve all move with it."]
+  },
+  {
+    "id": "hedge",
+    "say": "The account can also open a small Bitcoin short from its hedge reserve. M U S D is posted on Morpho Blue, Bitcoin is borrowed and sold on Mezo Pools, then the position is closed back into the account. Both are real transactions. A price drop cannot be caused on testnet, so that part is labelled simulated.",
+    "captions": ["The account can also open a small Bitcoin short from its hedge reserve.", "MUSD is posted on Morpho Blue, Bitcoin is borrowed and sold on Mezo Pools,", "then the position is closed back into the account.", "Both are real transactions.", "A price drop cannot be caused on testnet, so that part is labelled simulated."]
+  },
+  {
+    "id": "base",
+    "say": "Payers on Base can pay too. A U S D C payment from Base Sepolia crossed Wormhole, and repaid the loan in one Mezo transaction. The M U S D route, over Wormhole N T T, is built and deployed. Its live run is waiting on the testnet guardians.",
+    "captions": ["Payers on Base can pay too.", "A USDC payment from Base Sepolia crossed Wormhole,", "and repaid the loan in one Mezo transaction.", "The MUSD route, over Wormhole NTT, is built and deployed.", "Its live run is waiting on the testnet guardians."]
+  },
+  {
+    "id": "close",
+    "say": "Ballast is on testnet, and unaudited. Morpho on Mezo testnet was deployed by us, and a redemption position is a snapshot, not a guarantee. Every step you saw is backed by a transaction link. Ballast. Protect your Bitcoin. Strengthen your loan.",
+    "captions": ["Ballast is on testnet, and unaudited.", "Morpho on Mezo testnet was deployed by us,", "and a redemption position is a snapshot, not a guarantee.", "Every step you saw is backed by a transaction link.", "Ballast. Protect your Bitcoin. Strengthen your loan."]
+  }
+]

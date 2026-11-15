@@ -1,0 +1,20 @@
+{
+  "name": "ballast-video",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "studio": "remotion studio",
+    "render": "remotion render Ballast out/ballast-demo.mp4"
+  },
+  "dependencies": {
+    "@remotion/cli": "4.0.541",
+    "@remotion/google-fonts": "4.0.541",
+    "remotion": "4.0.541",
+    "react": "19.1.0",
+    "react-dom": "19.1.0",
+    "puppeteer-core": "24.10.0"
+  },
+  "allowScripts": {
+    "esbuild@0.28.1": true
+  }
+}

@@ -1,0 +1,12 @@
+hook       9.98s words=25
+pitch     21.17s words=53
+proof     23.38s words=60
+radar     15.34s words=42
+keeper    14.14s words=37
+nft       13.80s words=42
+retry hedge TimeoutError 
+hedge     20.28s words=57
+base      18.14s words=49
+close     16.92s words=41
+total 160.3 s
+exit 0

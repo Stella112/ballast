@@ -1,0 +1,288 @@
+{
+ "fps": 30,
+ "total": 4810,
+ "voice": "en-US-AndrewMultilingualNeural",
+ "scenes": [
+  {
+   "id": "hook",
+   "start": 10,
+   "audioFrames": 300,
+   "len": 324,
+   "from": 0,
+   "captions": [
+    {
+     "from": 3,
+     "to": 98,
+     "text": "Borrow against your Bitcoin on Mezo, and you can lose it two ways:"
+    },
+    {
+     "from": 98,
+     "to": 201,
+     "text": "redemption, or liquidation."
+    },
+    {
+     "from": 201,
+     "to": 300,
+     "text": "Meanwhile, the money you earn never touches the loan."
+    }
+   ]
+  },
+  {
+   "id": "pitch",
+   "start": 334,
+   "audioFrames": 635,
+   "len": 659,
+   "from": 324,
+   "captions": [
+    {
+     "from": 3,
+     "to": 161,
+     "text": "Ballast is the cash-flow autopilot for Bitcoin-backed loans."
+    },
+    {
+     "from": 161,
+     "to": 233,
+     "text": "Your loan lives in an account you control with an NFT."
+    },
+    {
+     "from": 233,
+     "to": 321,
+     "text": "Every payment you receive is split by your policy:"
+    },
+    {
+     "from": 321,
+     "to": 484,
+     "text": "part repays the loan, part builds a hedge reserve, and the rest is yours."
+    },
+    {
+     "from": 484,
+     "to": 635,
+     "text": "Each payment moves you further from redemption and liquidation."
+    }
+   ]
+  },
+  {
+   "id": "proof",
+   "start": 993,
+   "audioFrames": 701,
+   "len": 725,
+   "from": 983,
+   "captions": [
+    {
+     "from": 3,
+     "to": 93,
+     "text": "This is real, on Mezo testnet."
+    },
+    {
+     "from": 93,
+     "to": 206,
+     "text": "A customer pays 100 MUSD through the Ballast router."
+    },
+    {
+     "from": 206,
+     "to": 471,
+     "text": "In one transaction: 75 to the owner, 5 to the hedge reserve, 20 repays the loan."
+    },
+    {
+     "from": 471,
+     "to": 627,
+     "text": "The collateral ratio rises from 134.15% to 135.33%."
+    },
+    {
+     "from": 627,
+     "to": 701,
+     "text": "Here it is on the explorer."
+    }
+   ]
+  },
+  {
+   "id": "radar",
+   "start": 1718,
+   "audioFrames": 460,
+   "len": 484,
+   "from": 1708,
+   "captions": [
+    {
+     "from": 3,
+     "to": 146,
+     "text": "Redemption Radar reads Mezo's own sorted list of loans."
+    },
+    {
+     "from": 146,
+     "to": 264,
+     "text": "It shows your place in the redemption line, the MUSD ahead of you,"
+    },
+    {
+     "from": 264,
+     "to": 378,
+     "text": "your liquidation price, and exactly how much to repay"
+    },
+    {
+     "from": 378,
+     "to": 460,
+     "text": "to pass the next 10 or 50 loans."
+    }
+   ]
+  },
+  {
+   "id": "keeper",
+   "start": 2202,
+   "audioFrames": 424,
+   "len": 448,
+   "from": 2192,
+   "captions": [
+    {
+     "from": 3,
+     "to": 76,
+     "text": "No signature is needed per payment."
+    },
+    {
+     "from": 76,
+     "to": 212,
+     "text": "When money lands in the account directly, anyone can trigger the policy,"
+    },
+    {
+     "from": 212,
+     "to": 283,
+     "text": "but nobody can redirect the funds."
+    },
+    {
+     "from": 283,
+     "to": 424,
+     "text": "Repayments stop at Mezo's minimum debt: the excess goes to the owner."
+    }
+   ]
+  },
+  {
+   "id": "nft",
+   "start": 2650,
+   "audioFrames": 414,
+   "len": 438,
+   "from": 2640,
+   "captions": [
+    {
+     "from": 3,
+     "to": 87,
+     "text": "The account is an NFT, so it can be sold whole."
+    },
+    {
+     "from": 87,
+     "to": 217,
+     "text": "Here it is, listed in an escrow contract with the loan still open,"
+    },
+    {
+     "from": 217,
+     "to": 272,
+     "text": "then released to a buyer."
+    },
+    {
+     "from": 272,
+     "to": 414,
+     "text": "The loan, the collateral and the reserve all move with it."
+    }
+   ]
+  },
+  {
+   "id": "hedge",
+   "start": 3088,
+   "audioFrames": 608,
+   "len": 632,
+   "from": 3078,
+   "captions": [
+    {
+     "from": 3,
+     "to": 125,
+     "text": "The account can also open a small Bitcoin short from its hedge reserve."
+    },
+    {
+     "from": 125,
+     "to": 272,
+     "text": "MUSD is posted on Morpho Blue, Bitcoin is borrowed and sold on Mezo Pools,"
+    },
+    {
+     "from": 272,
+     "to": 363,
+     "text": "then the position is closed back into the account."
+    },
+    {
+     "from": 363,
+     "to": 414,
+     "text": "Both are real transactions."
+    },
+    {
+     "from": 414,
+     "to": 608,
+     "text": "A price drop cannot be caused on testnet, so that part is labelled simulated."
+    }
+   ]
+  },
+  {
+   "id": "base",
+   "start": 3720,
+   "audioFrames": 544,
+   "len": 568,
+   "from": 3710,
+   "captions": [
+    {
+     "from": 3,
+     "to": 56,
+     "text": "Payers on Base can pay too."
+    },
+    {
+     "from": 56,
+     "to": 184,
+     "text": "A USDC payment from Base Sepolia crossed Wormhole,"
+    },
+    {
+     "from": 184,
+     "to": 283,
+     "text": "and repaid the loan in one Mezo transaction."
+    },
+    {
+     "from": 283,
+     "to": 414,
+     "text": "The MUSD route, over Wormhole NTT, is built and deployed."
+    },
+    {
+     "from": 414,
+     "to": 544,
+     "text": "Its live run is waiting on the testnet guardians."
+    }
+   ]
+  },
+  {
+   "id": "close",
+   "start": 4288,
+   "audioFrames": 508,
+   "len": 532,
+   "from": 4278,
+   "captions": [
+    {
+     "from": 3,
+     "to": 88,
+     "text": "Ballast is on testnet, and unaudited."
+    },
+    {
+     "from": 88,
+     "to": 181,
+     "text": "Morpho on Mezo testnet was deployed by us,"
+    },
+    {
+     "from": 181,
+     "to": 272,
+     "text": "and a redemption position is a snapshot, not a guarantee."
+    },
+    {
+     "from": 272,
+     "to": 360,
+     "text": "Every step you saw is backed by a transaction link."
+    },
+    {
+     "from": 360,
+     "to": 508,
+     "text": "Ballast. Protect your Bitcoin. Strengthen your loan."
+    }
+   ]
+  }
+ ]
+}

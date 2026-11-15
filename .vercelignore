@@ -16,3 +16,6 @@ contracts/
 .claude/
 node_modules/
 .next/
+
+# demo video build
+video/

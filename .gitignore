@@ -21,3 +21,8 @@ next-env.d.ts
 *.tsbuildinfo
 .vercel/
 coverage/
+
+# demo video
+video/node_modules
+video/out/
+docs/video/*.mp4
